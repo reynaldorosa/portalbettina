@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Círculo principal -->
+  <circle cx="60" cy="60" r="50" fill="url(#grad)" stroke="#fff" stroke-width="4"/>
+  
+  <!-- Coração no centro -->
+  <path d="M60 45 L50 35 Q45 30 40 35 Q35 40 40 45 L60 65 L80 45 Q85 40 80 35 Q75 30 70 35 Z" fill="#fff" opacity="0.9"/>
+  
+  <!-- Estrelas ao redor -->
+  <polygon points="30,25 32,30 37,30 33,33 35,38 30,35 25,38 27,33 23,30 28,30" fill="#ffd700"/>
+  <polygon points="90,25 92,30 97,30 93,33 95,38 90,35 85,38 87,33 83,30 88,30" fill="#ffd700"/>
+  <polygon points="30,95 32,100 37,100 33,103 35,108 30,105 25,108 27,103 23,100 28,100" fill="#ffd700"/>
+  <polygon points="90,95 92,100 97,100 93,103 95,108 90,105 85,108 87,103 83,100 88,100" fill="#ffd700"/>
+  
+  <!-- Texto -->
+  <text x="60" y="85" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="12" font-weight="bold">BETINA</text>
+</svg>

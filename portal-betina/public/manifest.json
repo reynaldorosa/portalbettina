@@ -1,0 +1,22 @@
+{
+  "name": "Portal Betina",
+  "short_name": "Betina",
+  "description": "Portal de atividades neuropedagógicas para crianças com autismo, TDAH e outras necessidades cognitivas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#4A90E2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "health", "kids"],
+  "lang": "pt-BR",
+  "scope": "/",
+  "prefer_related_applications": false
+}

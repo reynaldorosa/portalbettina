@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: portal-betina-db
+    environment:
+      POSTGRES_USER: betina_user
+      POSTGRES_PASSWORD: betina_password
+      POSTGRES_DB: betina_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - betina-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: portal-betina-api
+    environment:
+      NODE_ENV: development
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: betina_user
+      DB_PASSWORD: betina_password
+      DB_NAME: betina_db
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src/services:/app/src/services
+    networks:
+      - betina-network
+    depends_on:
+      - db
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: portal-betina-app
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3000/api
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    networks:
+      - betina-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: portal-betina-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - betina-network
+    depends_on:
+      - app
+      - api
+
+networks:
+  betina-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  node_modules:

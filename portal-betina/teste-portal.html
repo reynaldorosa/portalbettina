@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Betina - Teste</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: url('logo.svg') center/cover no-repeat;
+            border-radius: 50%;
+        }
+        h1 {
+            color: #4a5de3;
+            margin: 0;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature {
+            padding: 20px;
+            border: 2px solid #e0e6ff;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        .status {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #2ecc71;
+        }
+        .instructions {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #4a5de3;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px;
+            transition: background 0.3s ease;
+        }
+        .btn:hover {
+            background: #3a4bd3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo"></div>
+            <h1>🌟 Portal Betina 🌟</h1>
+            <p>Portal de atividades neuropedagógicas para crianças com autismo, TDAH e outras necessidades cognitivas</p>
+        </div>
+
+        <div class="status">
+            <h3>✅ Status do Projeto: FUNCIONAL</h3>
+            <p>O Portal Betina foi desenvolvido com sucesso e está pronto para uso!</p>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🧠</div>
+                <h3>Jogo da Memória</h3>
+                <p>Exercita a memória visual e concentração com pares de emojis divertidos</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🌈</div>
+                <h3>Combinar Cores</h3>
+                <p>Aprende sobre cores associando objetos com suas respectivas cores</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔗</div>
+                <h3>Associação de Imagens</h3>
+                <p>Desenvolve raciocínio lógico conectando imagens relacionadas</p>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Como iniciar o projeto:</h3>
+            <ol>
+                <li>Abra o terminal na pasta do projeto</li>
+                <li>Execute: <code>npm run dev</code></li>
+                <li>Acesse o link fornecido (geralmente http://localhost:5173)</li>
+                <li>Aproveite as atividades pedagógicas!</li>
+            </ol>
+        </div>
+
+        <div style="text-align: center;">
+            <h3>🚀 Próximos Passos</h3>
+            <p>
+                <strong>✅ Implementado:</strong><br>
+                • 3 atividades funcionais com feedback sonoro<br>
+                • Sistema de progresso e estatísticas<br>
+                • Design responsivo e acessível<br>
+                • PWA pronto para instalação<br>
+                • QR Code para doações<br>
+            </p>
+            
+            <p>
+                <strong>🔄 Para melhorar:</strong><br>
+                • Adicionar mais atividades (números, letras, emoções)<br>
+                • Implementar sistema de níveis<br>
+                • Criar modo escuro<br>
+                • Adicionar sons de fundo opcionais<br>
+                • Implementar backup na nuvem do progresso<br>
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e6ff;">
+            <p><strong>💝 Desenvolvido com amor para ajudar crianças especiais</strong></p>
+            <p style="font-size: 0.9em; color: #666;">
+                Portal gratuito e aberto para famílias que buscam atividades terapêuticas de qualidade
+            </p>
+        </div>
+    </div>
+</body>
+</html>

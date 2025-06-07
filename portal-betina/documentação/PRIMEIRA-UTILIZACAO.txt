@@ -1,0 +1,46 @@
+=============================================
+= PORTAL BETINA - PRIMEIRA UTILIZAÇÃO =
+=============================================
+
+Bem-vindo(a) ao Portal Betina! Siga estas instruções 
+para configurar o sistema pela primeira vez.
+
+=============================================
+OPÇÃO 1: MODO SIMPLIFICADO (Recomendado para início rápido)
+=============================================
+
+1) Clique duplo em INICIAR-PORTAL.bat
+2) Espere o portal abrir no navegador
+3) Comece a usar!
+
+Esta opção usa armazenamento local e não requer
+instalação adicional.
+
+=============================================
+OPÇÃO 2: MODO COMPLETO COM BANCO DE DADOS (Recomendado para uso contínuo)
+=============================================
+
+1) Instale o Docker Desktop:
+   - Baixe em: https://www.docker.com/products/docker-desktop/
+   - Instale e inicie o programa
+
+2) Clique duplo em testar-docker.bat para verificar
+   se o Docker está funcionando corretamente
+
+3) Clique duplo em iniciar-docker.bat para iniciar 
+   o Portal Betina com banco de dados PostgreSQL
+
+4) Aguarde a inicialização (pode demorar alguns minutos
+   na primeira vez)
+
+5) Acesse: http://localhost:5173
+
+Esta opção oferece aprendizado adaptativo avançado e
+armazena todo o progresso entre sessões.
+
+=============================================
+PROBLEMAS?
+=============================================
+
+Consulte o arquivo RESOLVER-PROBLEMAS.md para soluções
+para problemas comuns, ou entre em contato com o suporte.

@@ -1,0 +1,29 @@
+# Dockerfile específico para API
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependências necessárias
+RUN apk add --no-cache wget
+
+# Copiar package.json
+COPY package*.json ./
+
+# Instalar dependências
+RUN npm ci --only=production
+
+# Adicionar express e cors se não estiverem no package.json
+RUN npm install express cors pg
+
+# Copiar serviços
+COPY src/services ./src/services
+
+# Expor porta da API
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# Comando para iniciar a API
+CMD ["node", "src/services/api-server.js"]

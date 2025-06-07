@@ -1,0 +1,142 @@
+{
+  "activities": [
+    {
+      "id": "memory-game",
+      "name": "Jogo da Memória",
+      "description": "Encontre os pares iguais e exercite a memória de forma divertida",
+      "icon": "🧠",
+      "category": "memory",
+      "difficulty": 1,
+      "color": "#4A90E2",
+      "badge": "Memória",
+      "skills": ["memória", "concentração", "atenção"],
+      "ageRange": "3-12",
+      "available": true
+    },
+    {
+      "id": "color-match",
+      "name": "Combinar Cores",
+      "description": "Associe objetos e animais com suas cores correspondentes",
+      "icon": "🌈",
+      "category": "colors",
+      "difficulty": 1,
+      "color": "#7ED321",
+      "badge": "Cores",
+      "skills": ["reconhecimento de cores", "associação", "classificação"],
+      "ageRange": "2-8",
+      "available": true
+    },
+    {
+      "id": "image-association",
+      "name": "Associação de Imagens",
+      "description": "Combine imagens relacionadas e desenvolva conexões lógicas",
+      "icon": "🧩",
+      "category": "logic",
+      "difficulty": 2,
+      "color": "#F5A623",
+      "badge": "Lógica",
+      "skills": ["raciocínio lógico", "associação", "pensamento crítico"],
+      "ageRange": "4-12",
+      "available": true
+    },
+    {
+      "id": "sound-recognition",
+      "name": "Sons e Música",
+      "description": "Identifique sons de animais, instrumentos e natureza",
+      "icon": "🎵",
+      "category": "sounds",
+      "difficulty": 2,
+      "color": "#9013FE",
+      "badge": "Audição",
+      "skills": ["discriminação auditiva", "memória auditiva", "atenção"],
+      "ageRange": "3-10",
+      "available": false,
+      "comingSoon": true
+    },
+    {
+      "id": "number-sequence",
+      "name": "Números Divertidos",
+      "description": "Aprenda números de 1 a 10 com atividades interativas",
+      "icon": "🔢",
+      "category": "numbers",
+      "difficulty": 1,
+      "color": "#E91E63",
+      "badge": "Números",
+      "skills": ["numeracia", "sequência", "contagem"],
+      "ageRange": "3-8",
+      "available": false,
+      "comingSoon": true
+    },
+    {
+      "id": "emotions",
+      "name": "Reconhecer Emoções",
+      "description": "Identifique diferentes expressões e sentimentos",
+      "icon": "😊",
+      "category": "emotions",
+      "difficulty": 2,
+      "color": "#FF6B6B",
+      "badge": "Emoções",
+      "skills": ["inteligência emocional", "reconhecimento facial", "empatia"],
+      "ageRange": "4-12",
+      "available": false,
+      "comingSoon": true
+    },
+    {
+      "id": "creative-painting",
+      "name": "Pintura Criativa",
+      "description": "Crie obras de arte coloridas com pincéis digitais e complete desafios criativos",
+      "icon": "🎨",
+      "category": "creativity",
+      "difficulty": 2,
+      "color": "#9C27B0",
+      "badge": "Arte",
+      "skills": ["criatividade", "coordenação motora", "expressão artística", "reconhecimento de cores"],
+      "ageRange": "3-12",
+      "available": true
+    }
+  ],
+  "categories": {
+    "memory": {
+      "name": "Memória",
+      "description": "Atividades para fortalecer a memória e concentração",
+      "color": "#4A90E2",
+      "icon": "🧠"
+    },
+    "colors": {
+      "name": "Cores",
+      "description": "Reconhecimento e associação de cores",
+      "color": "#7ED321",
+      "icon": "🌈"
+    },
+    "logic": {
+      "name": "Lógica",
+      "description": "Desenvolvimento do raciocínio lógico e associativo",
+      "color": "#F5A623",
+      "icon": "🧩"
+    },
+    "sounds": {
+      "name": "Sons",
+      "description": "Discriminação e memória auditiva",
+      "color": "#9013FE",
+      "icon": "🎵"
+    },
+    "numbers": {
+      "name": "Números",
+      "description": "Conceitos básicos de numeracia",
+      "color": "#E91E63",
+      "icon": "🔢"
+    },
+    "emotions": {
+      "name": "Emoções",
+      "description": "Reconhecimento de expressões e sentimentos",
+      "color": "#FF6B6B",
+      "icon": "😊"
+    },
+    "creativity": {
+      "name": "Criatividade",
+      "description": "Expressão artística e criativa",
+      "color": "#9C27B0",
+      "icon": "🎨"
+    }
+  }
+}

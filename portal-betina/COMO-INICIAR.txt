@@ -1,0 +1,91 @@
+🌟 PORTAL BETINA - INSTRUÇÕES DE INICIALIZAÇÃO 🌟
+
+═══════════════════════════════════════════════════════
+
+📋 OPÇÕES PARA INICIAR O PROJETO:
+
+1️⃣ MODO PADRÃO (Armazenamento Local):
+   • Localize o arquivo: INICIAR-PORTAL.bat
+   • Dê duplo clique nele
+   • O projeto iniciará automaticamente
+
+🐳 MODO DOCKER (Com Banco de Dados):
+   • Localize o arquivo: iniciar-docker.bat
+   • Dê duplo clique nele
+   • Requer Docker Desktop instalado
+   • Oferece: 
+     - Armazenamento persistente de dados
+     - Aprendizado adaptativo avançado
+     - Relatórios de progresso completos
+
+2️⃣ OPÇÃO MANUAL - Prompt de Comando:
+   • Pressione Windows + R
+   • Digite: cmd
+   • Digite os comandos:
+     cd "c:\Users\uniqs\Desktop\PORTALBETINA\portal-betina"
+     npm install
+     npm run dev
+
+3️⃣ OPÇÃO ALTERNATIVA - PowerShell:
+   • Pressione Windows + X, escolha "Windows PowerShell"
+   • Digite os comandos:
+     Set-Location "c:\Users\uniqs\Desktop\PORTALBETINA\portal-betina"
+     npm install
+     npm run dev
+
+4️⃣ OPÇÃO VISUAL STUDIO CODE:
+   • Abra o VS Code
+   • File → Open Folder
+   • Selecione a pasta: portal-betina
+   • Abra o terminal (Ctrl + `)
+   • Digite: npm run dev
+
+═══════════════════════════════════════════════════════
+
+✅ APÓS INICIAR:
+• O servidor abrirá em: http://localhost:5173
+• O navegador deve abrir automaticamente
+• Se não abrir, copie e cole o link no navegador
+
+🎮 ATIVIDADES DISPONÍVEIS:
+• 🧠 Jogo da Memória
+• 🌈 Combinar Cores  
+• 🔗 Associação de Imagens
+
+♿ RECURSOS DE ACESSIBILIDADE:
+• Botão de alto contraste
+• Suporte a leitores de tela
+• Navegação por teclado
+• Feedback sonoro e tátil
+
+💝 DOAÇÕES:
+• QR Code PIX disponível na interface
+• 100% opcional e transparente
+
+═══════════════════════════════════════════════════════
+
+⚠️ SOLUÇÃO DE PROBLEMAS:
+
+❌ Se der erro "npm não reconhecido":
+   • Instale o Node.js: https://nodejs.org
+   • Reinicie o computador
+   • Tente novamente
+
+❌ Se der erro de dependências:
+   • Delete a pasta "node_modules"
+   • Execute: npm install
+   • Execute: npm run dev
+
+❌ Se a porta estiver ocupada:
+   • O Vite automaticamente usará outra porta
+   • Ou pressione Ctrl + C e tente novamente
+
+═══════════════════════════════════════════════════════
+
+📱 TESTE RÁPIDO SEM INSTALAR:
+• Abra o arquivo: teste-portal.html
+• Visualize o projeto em modo demonstração
+
+🚀 O projeto está 100% funcional e pronto para uso!
+
+═══════════════════════════════════════════════════════

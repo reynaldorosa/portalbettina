@@ -1,0 +1,23 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9013FE;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="45" fill="url(#bgGradient)" />
+  
+  <!-- Rainbow arc -->
+  <path d="M 20 50 Q 50 20 80 50" stroke="#7ED321" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M 22 55 Q 50 25 78 55" stroke="#F5A623" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M 24 60 Q 50 30 76 60" stroke="#E91E63" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- Star -->
+  <polygon points="50,35 52,41 58,41 53,45 55,51 50,47 45,51 47,45 42,41 48,41" fill="white"/>
+  
+  <!-- Heart -->
+  <path d="M35,65 C35,62 37,60 40,60 C43,60 45,62 45,65 C45,68 40,73 35,65 Z" fill="white"/>
+  <path d="M55,65 C55,62 57,60 60,60 C63,60 65,62 65,65 C65,68 60,73 55,65 Z" fill="white"/>
+</svg>
