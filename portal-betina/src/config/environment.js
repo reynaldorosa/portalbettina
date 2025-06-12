@@ -1,59 +1,70 @@
-/**
- * CONFIGURAÇÕES DE AMBIENTE - PLATAFORMA BETINA
- * Centraliza todas as configurações para Docker e diferentes ambientes
- * 
- * @version 2.0.0
- * @created 2025-06-05
- * @purpose Padronização Docker e API
- */
+import { z } from 'zod';
 
-// Configurações base por ambiente
+const envSchema = z.object({
+  VITE_API_URL: z.string().url().default('http://localhost:3000/api'),
+  VITE_API_HOST: z.string().default('localhost'),
+  VITE_API_PORT: z.coerce.number().default(3000),
+  VITE_PRODUCTION_API_URL: z.string().url().default('https://api.betina.com'),
+  VITE_DEBUG_MODE: z.coerce.boolean().default(true),
+  VITE_METRICS_INTERVAL: z.coerce.number().default(2000),
+  VITE_ENABLE_CACHE: z.coerce.boolean().default(true),
+  VITE_LOG_LEVEL: z.string().default('debug'),
+  VITE_DOCKER_ENV: z.coerce.boolean().default(true),
+  VITE_VERSION: z.string().default('2.0.0'),
+  VITE_DB_URL: z.string().default(''),
+  NODE_ENV: z.string().default('development'),
+  CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173'),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
+  RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS: z.coerce.boolean().default(true),
+  VITE_API_TIMEOUT: z.coerce.number().default(15000),
+  VITE_API_RETRY_ATTEMPTS: z.coerce.number().default(3),
+  VITE_CACHE_TTL: z.coerce.number().default(3600),
+  VITE_BATCH_SIZE: z.coerce.number().default(50)
+});
+
+const env = envSchema.parse(import.meta.env);
+
 export const ENVIRONMENT_CONFIG = {
   development: {
-    API_URL: 'http://localhost:3001',
-    DB_URL: 'postgresql://betina_user:betina_pass@localhost:5432/betina_db',
-    DEBUG_MODE: true,
-    METRICS_INTERVAL: 1000,
-    CACHE_ENABLED: false,
-    LOG_LEVEL: 'debug'
+    API_URL: env.VITE_API_URL,
+    DEBUG_MODE: env.VITE_DEBUG_MODE,
+    METRICS_INTERVAL: env.VITE_METRICS_INTERVAL,
+    CACHE_ENABLED: env.VITE_ENABLE_CACHE,
+    LOG_LEVEL: env.VITE_LOG_LEVEL
   },
-  
   production: {
-    API_URL: process.env.REACT_APP_API_URL || 'https://api.betina.com',
-    DB_URL: process.env.REACT_APP_DB_URL,
-    DEBUG_MODE: false,
-    METRICS_INTERVAL: 5000,
-    CACHE_ENABLED: true,
-    LOG_LEVEL: 'error'
+    API_URL: env.VITE_PRODUCTION_API_URL,
+    DEBUG_MODE: env.VITE_DEBUG_MODE,
+    METRICS_INTERVAL: env.VITE_METRICS_INTERVAL,
+    CACHE_ENABLED: env.VITE_ENABLE_CACHE,
+    LOG_LEVEL: env.VITE_LOG_LEVEL
   },
-  
   docker_local: {
-    API_URL: 'http://api:3001',
-    DB_URL: 'postgresql://betina_user:betina_pass@postgres:5432/betina_db',
-    DEBUG_MODE: true,
-    METRICS_INTERVAL: 2000,
-    CACHE_ENABLED: true,
-    LOG_LEVEL: 'info'
+    API_URL: env.VITE_API_URL,
+    DEBUG_MODE: env.VITE_DEBUG_MODE,
+    METRICS_INTERVAL: env.VITE_METRICS_INTERVAL,
+    CACHE_ENABLED: env.VITE_ENABLE_CACHE,
+    LOG_LEVEL: env.VITE_LOG_LEVEL
   },
-  
   docker_production: {
-    API_URL: process.env.REACT_APP_API_URL || 'http://api:3001',
-    DB_URL: process.env.REACT_APP_DB_URL,
+    API_URL: env.VITE_PRODUCTION_API_URL,
+    DB_URL: env.VITE_DB_URL,
     DEBUG_MODE: false,
-    METRICS_INTERVAL: 5000,
+    METRICS_INTERVAL: env.VITE_METRICS_INTERVAL,
     CACHE_ENABLED: true,
     LOG_LEVEL: 'warn'
   }
 };
 
-// Detectar ambiente atual
 export const getCurrentEnvironment = () => {
-  // Verificar se está rodando em Docker
-  const isDocker = process.env.DOCKER_ENV === 'true' || 
-                   window.location.hostname === 'localhost' && process.env.NODE_ENV === 'production';
-  
-  // Verificar se é produção
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isDockerByHostname = typeof window !== 'undefined' && 
+                            window.location.hostname !== 'localhost' && 
+                            window.location.hostname !== '127.0.0.1' && 
+                            window.location.hostname !== '';
+  const dockerEnvVar = env.VITE_DOCKER_ENV;
+  const isProduction = import.meta.env.MODE === 'production' || env.NODE_ENV === 'production';
+  const isDocker = dockerEnvVar || isDockerByHostname;
   
   if (isDocker && isProduction) {
     return 'docker_production';
@@ -61,87 +72,66 @@ export const getCurrentEnvironment = () => {
     return 'docker_local';
   } else if (isProduction) {
     return 'production';
-  } else {
-    return 'development';
   }
+  return 'development';
 };
 
-// Configurações atuais baseadas no ambiente
 const currentEnv = getCurrentEnvironment();
 export const CONFIG = ENVIRONMENT_CONFIG[currentEnv];
 
-// Configurações específicas para Docker
 export const DOCKER_CONFIG = {
-  // Health checks
   HEALTH_CHECK_INTERVAL: 30000,
   HEALTH_CHECK_TIMEOUT: 5000,
   HEALTH_CHECK_RETRIES: 3,
-  
-  // Networking
-  INTERNAL_PORT: 3000,
-  EXTERNAL_PORT: process.env.REACT_APP_PORT || 3000,
-  
-  // Volume mappings
+  INTERNAL_PORT: env.VITE_API_PORT,
+  EXTERNAL_PORT: env.VITE_API_PORT,
   VOLUMES: {
     uploads: '/app/uploads',
     logs: '/app/logs',
     cache: '/app/cache'
   },
-  
-  // Environment variables para Docker Compose
   ENV_VARS: {
-    NODE_ENV: process.env.NODE_ENV || 'production',
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL || 'http://api:3001',
-    REACT_APP_DB_URL: process.env.REACT_APP_DB_URL,
-    REACT_APP_VERSION: process.env.REACT_APP_VERSION || '2.0.0',
-    REACT_APP_ENVIRONMENT: currentEnv,
+    NODE_ENV: env.NODE_ENV,
+    VITE_API_URL: env.VITE_API_URL,
+    VITE_DB_URL: env.VITE_DB_URL,
+    VITE_VERSION: env.VITE_VERSION,
+    VITE_ENVIRONMENT: currentEnv,
     DOCKER_ENV: 'true'
   }
 };
 
-// Configurações de API padronizadas
 export const API_CONFIG = {
-  // Headers padrão
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'X-Client-Version': CONFIG.version || '2.0.0',
+    'X-Client-Version': env.VITE_VERSION,
     'X-Environment': currentEnv
   },
-  
-  // Timeouts
   TIMEOUT: {
-    default: 10000,
+    default: env.VITE_API_TIMEOUT,
     upload: 30000,
     download: 20000
   },
-  
-  // Retry configuration
   RETRY: {
-    attempts: 3,
+    attempts: env.VITE_API_RETRY_ATTEMPTS,
     delay: 1000,
     backoff: 2
   },
-  
-  // Endpoints padrão
   ENDPOINTS: {
-    health: '/health',
-    users: '/user',
-    sessions: '/sessions',
-    metrics: '/metrics',
-    activities: '/activities',
-    progress: '/progress'
+    health: '/api/health',
+    users: '/api/user',
+    sessions: '/api/game-session',
+    metrics: '/api/dashboard-metrics',
+    activities: '/api/activities',
+    progress: '/api/neuropedagogical-insights'
   }
 };
 
-// Configurações de métricas
 export const METRICS_CONFIG = {
   COLLECTION_INTERVAL: CONFIG.METRICS_INTERVAL,
-  BATCH_SIZE: 10,
+  BATCH_SIZE: env.VITE_BATCH_SIZE,
   MAX_QUEUE_SIZE: 100,
   RETENTION_DAYS: 90,
-  
-  // Métricas a coletar
   COLLECT: {
     performance: true,
     errors: true,
@@ -151,15 +141,13 @@ export const METRICS_CONFIG = {
   }
 };
 
-// Configurações de cache
 export const CACHE_CONFIG = {
   ENABLED: CONFIG.CACHE_ENABLED,
   TTL: {
-    short: 5 * 60 * 1000,    // 5 minutos
-    medium: 30 * 60 * 1000,  // 30 minutos
-    long: 24 * 60 * 60 * 1000 // 24 horas
+    SHORT: env.VITE_CACHE_TTL * 1000,
+    MEDIUM: 30 * 60 * 1000,
+    LONG: 24 * 60 * 60 * 1000
   },
-  
   KEYS: {
     user_profile: 'user_profile_',
     game_sessions: 'game_sessions_',
@@ -168,18 +156,14 @@ export const CACHE_CONFIG = {
   }
 };
 
-// Configurações de log
 export const LOG_CONFIG = {
-  LEVEL: CONFIG.LOG_LEVEL,
-  
+  LEVEL: env.VITE_LOG_LEVEL,
   LEVELS: {
-    debug: 0,
-    info: 1,
-    warn: 2,
-    error: 3
+    debug: '0',
+    info: '1',
+    warn: '2',
+    error: '3'
   },
-  
-  // Formato de log para diferentes ambientes
   FORMAT: {
     development: 'simple',
     production: 'json',
@@ -188,55 +172,37 @@ export const LOG_CONFIG = {
   }
 };
 
-// Configurações de segurança
 export const SECURITY_CONFIG = {
-  // CORS
   CORS: {
-    origins: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://betina.com',
-      'https://app.betina.com'
-    ],
+    origin: env.CORS_ORIGINS.split(',').filter(Boolean),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Version']
+    allowedHeaders: ['Content-Type', 'Authorization']
   },
-  
-  // Rate limiting
   RATE_LIMIT: {
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100 // requests por window
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    max: env.RATE_LIMIT_MAX_REQUESTS,
+    skipSuccessfulRequests: env.RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS
   },
-  
-  // Data validation
   VALIDATION: {
-    maxFileSize: 10 * 1024 * 1024, // 10MB
+    maxFileSize: 10 * 1024 * 1024,
     allowedFileTypes: ['image/jpeg', 'image/png', 'image/gif'],
     maxStringLength: 1000
   }
 };
 
-// Função para validar configuração do ambiente
 export const validateEnvironment = () => {
   const errors = [];
-  
-  // Verificar variáveis obrigatórias em produção
   if (currentEnv.includes('production')) {
-    const requiredVars = ['REACT_APP_API_URL', 'REACT_APP_DB_URL'];
-    
+    const requiredVars = ['VITE_API_URL', 'VITE_DB_URL'];
     requiredVars.forEach(varName => {
-      if (!process.env[varName]) {
-        errors.push(`Variável de ambiente obrigatória ausente: ${varName}`);
+      if (!import.meta.env[varName]) {
+        errors.push(`${varName} missing`);
       }
     });
   }
-  
-  // Verificar conectividade com API
-  const apiUrl = CONFIG.API_URL;
-  if (!apiUrl) {
-    errors.push('URL da API não configurada');
+  if (!CONFIG.API_URL) {
+    errors.push('API_URL not configured');
   }
-  
   return {
     isValid: errors.length === 0,
     errors,
@@ -245,41 +211,36 @@ export const validateEnvironment = () => {
   };
 };
 
-// Função para obter informações do sistema
 export const getSystemInfo = () => {
   return {
     environment: currentEnv,
-    version: process.env.REACT_APP_VERSION || '2.0.0',
-    buildTime: process.env.REACT_APP_BUILD_TIME || new Date().toISOString(),
-    nodeEnv: process.env.NODE_ENV,
+    version: env.VITE_VERSION,
+    buildTime: import.meta.env.VITE_BUILD_TIME || new Date().toISOString(),
+    nodeEnv: env.NODE_ENV,
     apiUrl: CONFIG.API_URL,
     debugMode: CONFIG.DEBUG_MODE,
     browser: {
-      userAgent: navigator.userAgent,
-      language: navigator.language,
-      platform: navigator.platform,
-      cookieEnabled: navigator.cookieEnabled
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      language: typeof navigator !== 'undefined' ? navigator.language : '',
+      platform: typeof navigator !== 'undefined' ? navigator.platform : '',
+      cookieEnabled: typeof navigator !== 'undefined' ? navigator.cookieEnabled : false
     },
     screen: {
-      width: window.screen.width,
-      height: window.screen.height,
-      devicePixelRatio: window.devicePixelRatio
+      width: typeof window !== 'undefined' ? window.screen.width : 0,
+      height: typeof window !== 'undefined' ? window.screen.height : 0,
+      devicePixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1
     }
   };
 };
 
-// Logger padronizado
 export class Logger {
   constructor(component = 'App') {
     this.component = component;
-    this.minLevel = LOG_CONFIG.LEVELS[LOG_CONFIG.LEVEL];
+    this.minLevel = LOG_CONFIG.LEVELS[LOG_CONFIG.LEVEL] || '0';
   }
-  
   log(level, message, data = null) {
-    const levelNum = LOG_CONFIG.LEVELS[level] || 0;
-    
-    if (levelNum < this.minLevel) return;
-    
+    const levelNum = LOG_CONFIG.LEVELS[level] || '0';
+    if (parseInt(levelNum) < parseInt(this.minLevel)) return;
     const logEntry = {
       timestamp: new Date().toISOString(),
       level: level.toUpperCase(),
@@ -287,7 +248,6 @@ export class Logger {
       message,
       ...(data && { data })
     };
-    
     if (LOG_CONFIG.FORMAT[currentEnv] === 'json') {
       console.log(JSON.stringify(logEntry));
     } else {
@@ -297,21 +257,17 @@ export class Logger {
         warn: '⚠️',
         error: '❌'
       }[level] || '';
-      
       console.log(`${emoji} [${this.component}] ${message}`, data || '');
     }
   }
-  
   debug(message, data) { this.log('debug', message, data); }
   info(message, data) { this.log('info', message, data); }
   warn(message, data) { this.log('warn', message, data); }
   error(message, data) { this.log('error', message, data); }
 }
 
-// Instância global do logger
 export const logger = new Logger('Global');
 
-// Hook para usar configurações nos componentes
 export const useConfig = () => {
   return {
     config: CONFIG,

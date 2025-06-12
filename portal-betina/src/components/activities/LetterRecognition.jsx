@@ -1,13 +1,22 @@
-      import React, { useState, useEffect } from 'react'
+// filepath: c:\Projetos\portalbettina\portal-betina\src\components\activities\LetterRecognition.jsx
+import React, { useReducer, useEffect, useCallback, useMemo } from 'react'
 import styled from 'styled-components'
 import { motion, AnimatePresence } from 'framer-motion'
+import PropTypes from 'prop-types'
+import { debounce } from 'lodash'
 import useSound from '../../hooks/useSound'
 import useProgress from '../../hooks/useProgress'
-import useUser from '../../hooks/useUser'
+import { useUser } from '../../contexts/UserContext'
 import useTTS from '../../hooks/useTTS'
+import useAdvancedActivity from '../../hooks/useAdvancedActivity'
 import ActivityTimer from '../common/ActivityTimer'
-import { announceToScreenReader, vibrateSuccess, vibrateError, prefersHighContrast, prefersReducedMotion } from '../../utils/accessibility'
-import { createAdaptiveModel, getAdaptiveParameters } from '../../utils/adaptiveML'
+import {
+  announceToScreenReader,
+  vibrateSuccess,
+  vibrateError,
+  prefersHighContrast,
+  prefersReducedMotion,
+} from '../../utils/accessibility/index.js'
 import {
   GameContainer,
   GameHeader,
@@ -20,14 +29,14 @@ import {
   DifficultySelector,
   DifficultyButton,
   ControlButtons,
-  ActionButton
+  ActionButton,
 } from '../../styles/activityCommon'
 
-// Definição de cores temáticas para esta atividade
-const THEME_COLOR = 'var(--primary-green)';
-const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-green), var(--primary-blue))';
+// Definição de cores temáticas
+const THEME_COLOR = 'var(--primary-green)'
+const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-green), var(--primary-blue))'
 
-// Estilos específicos para LetterRecognition com as cores temáticas
+// Estilos
 const InstructionText = styled(BaseInstructionText)`
   background: ${THEME_GRADIENT};
 `
@@ -69,7 +78,6 @@ const TargetLetterDisplay = styled(motion.div)`
   font-weight: bold;
   box-shadow: var(--shadow-large);
   margin: var(--space-lg) 0;
-  
   @media (max-width: 768px) {
     width: 120px;
     height: 120px;
@@ -90,7 +98,6 @@ const OptionsGrid = styled.div`
   gap: var(--space-md);
   width: 100%;
   max-width: 600px;
-  
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-sm);
@@ -110,30 +117,25 @@ const LetterOption = styled(motion.button)`
   transition: all var(--transition-normal);
   box-shadow: var(--shadow-medium);
   min-height: 120px;
-  
   &:hover {
     border-color: var(--primary-green);
     transform: translateY(-3px);
     box-shadow: var(--shadow-large);
   }
-  
   &:focus {
     outline: 3px solid var(--primary-orange);
     outline-offset: 2px;
   }
-  
   &.correct {
     background: var(--success-light);
     border-color: var(--primary-green);
     color: var(--success-dark);
   }
-  
   &.incorrect {
     background: var(--error-light);
     border-color: var(--primary-red);
     color: var(--error-dark);
   }
-  
   @media (max-width: 768px) {
     padding: var(--space-md);
     min-height: 100px;
@@ -144,7 +146,6 @@ const OptionLetter = styled.div`
   font-size: 2.5rem;
   font-weight: bold;
   color: var(--primary-blue);
-  
   @media (max-width: 768px) {
     font-size: 2rem;
   }
@@ -159,10 +160,9 @@ const OptionWord = styled.div`
 
 const OptionImage = styled.div`
   font-size: 1.5rem;
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   line-height: 1;
   text-align: center;
-  
   @media (max-width: 768px) {
     font-size: 1.2rem;
   }
@@ -174,13 +174,11 @@ const FeedbackMessage = styled(motion.div)`
   text-align: center;
   font-weight: 600;
   font-size: var(--font-size-md);
-  
   &.success {
     background: var(--success-light);
     color: var(--success-dark);
     border: 2px solid var(--primary-green);
   }
-  
   &.error {
     background: var(--error-light);
     color: var(--error-dark);
@@ -205,766 +203,624 @@ const StarDisplay = styled.div`
   font-size: var(--font-size-xl);
 `
 
-// Dados das letras com palavras e emojis associados - EXPANDIDO para +15 perguntas únicas
+// Dados das letras com correções de erros tipográficos
 const letterData = {
-  A: { 
-    words: ['AVIÃO', 'ÁRVORE', 'ABELHA', 'ÁGUA', 'AMIGO', 'ARCO-ÍRIS'], 
-    emojis: ['✈️', '🌳', '🐝', '💧', '👫', '🌈'] 
+  A: {
+    words: ['AVIÃO', 'ÁRVORE', 'ABELHA', 'ÁGUA', 'AMIGO', 'ARCO-ÍRIS'],
+    emojis: ['✈️', '🌳', '🐝', '💧', '👫', '🌈'],
   },
-  B: { 
-    words: ['BOLA', 'BANANA', 'BORBOLETA', 'BEBÊ', 'BICICLETA', 'BALÃO'], 
-    emojis: ['⚽', '🍌', '🦋', '👶', '🚲', '🎈'] 
+  B: {
+    words: ['BOLA', 'BANANA', 'BORBOLETA', 'BEBÊ', 'BICICLETA', 'BALÃO'],
+    emojis: ['⚽', '🍌', '🦋', '👶', '🚲', '🎈'],
   },
-  C: { 
-    words: ['CASA', 'CACHORRO', 'CORAÇÃO', 'CARRO', 'COROA', 'CHOCOLATE'], 
-    emojis: ['🏠', '🐕', '❤️', '🚗', '👑', '🍫'] 
+  C: {
+    words: ['CASA', 'CACHORRO', 'CORAÇÃO', 'CARRO', 'COROA', 'CHOCOLATE'],
+    emojis: ['🏠', '🐕', '❤️', '🚗', '👑', '🍫'],
   },
-  D: { 
-    words: ['DADO', 'DINOSSAURO', 'DOCE', 'DENTE', 'DRAGÃO', 'DIAMANTE'], 
-    emojis: ['🎲', '🦕', '🍭', '🦷', '🐉', '💎'] 
+  D: {
+    words: ['DADO', 'DINOSSAURO', 'DOCE', 'DENTE', 'DRAGÃO', 'DIAMANTE'],
+    emojis: ['🎲', '🦕', '🍭', '🦷', '🐉', '💎'],
   },
-  E: { 
-    words: ['ELEFANTE', 'ESTRELA', 'ESCADA', 'ESPELHO', 'ESCOLA', 'ENVELOPE'], 
-    emojis: ['🐘', '⭐', '🪜', '🪞', '🏫', '✉️'] 
+  E: {
+    words: ['ELEFANTE', 'ESTRELA', 'ESCADA', 'ESPELHO', 'ESCOLA', 'ENVELOPE'],
+    emojis: ['🐘', '⭐', '🪜', '🪞', '🏫', '✉️'],
   },
-  F: { 
-    words: ['FLOR', 'FOGO', 'FESTA', 'FACA', 'FUTEBOL', 'FANTASMA'], 
-    emojis: ['🌸', '🔥', '🎉', '🔪', '⚽', '👻'] 
+  F: {
+    words: ['FLOR', 'FOGO', 'FESTA', 'FACA', 'FUTEBOL', 'FANTASMA'],
+    emojis: ['🌸', '🔥', '🎉', '🔪', '⚽', '👻'],
   },
-  G: { 
-    words: ['GATO', 'GUITARRA', 'GIRASSOL', 'GALINHA', 'GELADO', 'GLOBO'], 
-    emojis: ['🐱', '🎸', '🌻', '🐔', '🧊', '🌍'] 
+  G: {
+    words: ['GATO', 'GUITARRA', 'GIRASSOL', 'GALINHA', 'GELADO', 'GLOBO'],
+    emojis: ['🐱', '🎸', '🌻', '🐔', '🧊', '🌍'],
   },
-  H: { 
-    words: ['HIPOPÓTAMO', 'HAMBÚRGUER', 'HELICÓPTERO', 'HOSPITAL', 'HORAS', 'HARPA'], 
-    emojis: ['🦛', '🍔', '🚁', '🏥', '⏰', '🎵'] 
+  H: {
+    words: ['HIPOPÓTAMO', 'HAMBÚRGUER', 'HELICÓPTERO', 'HOSPITAL', 'HORAS', 'HARPA'],
+    emojis: ['🦛', '🍔', '🚁', '🏥', '⏰', '🎵'],
   },
-  I: { 
-    words: ['IGREJA', 'ILHA', 'ÍNDIO', 'ÍMÃE', 'IGUANA', 'INVERNO'], 
-    emojis: ['⛪', '🏝️', '🪶', '🧲', '🦎', '❄️'] 
+  I: {
+    words: ['IGREJA', 'ILHA', 'ÍNDIO', 'ÍMÃ', 'IGUANA', 'INVERNO'],
+    emojis: ['⛪', '🏝️', '🪶', '🧲', '🦎', '❄️'],
   },
-  J: { 
-    words: ['JACARÉ', 'JOANINHA', 'JARDIM', 'JARRO', 'JOIA', 'JANELA'], 
-    emojis: ['🐊', '🐞', '🌺', '🏺', '💍', '🪟'] 
+  J: {
+    words: ['JACARÉ', 'JOANINHA', 'JARDIM', 'JARRO', 'JOIA', 'JANELA'],
+    emojis: ['🐊', '🐞', '🌺', '🏺', '💍', '🪟'],
   },
-  K: { 
-    words: ['KIWI', 'KARATÊ', 'KOALA'], 
-    emojis: ['🥝', '🥋', '🐨'] 
+  K: { words: ['KIWI', 'KARATÊ', 'KOALA'], emojis: ['🥝', '🥋', '🐨'] },
+  L: {
+    words: ['LEÃO', 'LUA', 'LIVRO', 'LÂMPADA', 'LAGARTA', 'LIMÃO'],
+    emojis: ['🦁', '🌙', '📚', '💡', '🐛', '🍋'],
   },
-  L: { 
-    words: ['LEÃO', 'LUA', 'LIVRO', 'LÂMPADA', 'LAGARTA', 'LIMÃO'], 
-    emojis: ['🦁', '🌙', '📚', '💡', '🐛', '🍋'] 
+  M: {
+    words: ['MACACO', 'MAÇÃ', 'MÚSICA', 'MÃO', 'MEDALHA', 'MONSTRO'],
+    emojis: ['🐵', '🍎', '🎵', '🤲', '🏅', '👹'],
   },
-  M: { 
-    words: ['MACACO', 'MAÇÃ', 'MÚSICA', 'MÃOE', 'MEDALHA', 'MONSTRO'], 
-    emojis: ['🐵', '🍎', '🎵', '🤲', '🏅', '👹'] 
+  N: {
+    words: ['NAVIO', 'NUVEM', 'NATUREZA', 'NINHO', 'NARIZ', 'NOTEBOOK'],
+    emojis: ['🚢', '☁️', '🌿', '🪺', '👃', '💻'],
   },
-  N: { 
-    words: ['NAVIO', 'NUVEM', 'NATUREZA', 'NINHO', 'NARIZ', 'NOTEBOOK'], 
-    emojis: ['🚢', '☁️', '🌿', '🪺', '👃', '💻'] 
+  O: {
+    words: ['OLHO', 'OVO', 'OVELHA', 'ÓCULOS', 'OURO', 'ONDA'],
+    emojis: ['👁️', '🥚', '🐑', '👓', '🏆', '🌊'],
   },
-  O: { 
-    words: ['OLHO', 'OVO', 'OVELHA', 'ÓCULOS', 'OURO', 'ONDA'], 
-    emojis: ['👁️', '🥚', '🐑', '👓', '🏆', '🌊'] 
+  P: {
+    words: ['PATO', 'PIZZA', 'PRESENTE', 'PALHAÇO', 'PLANETA', 'PEIXE'],
+    emojis: ['🦆', '🍕', '🎁', '🤡', '🪐', '🐟'],
   },
-  P: { 
-    words: ['PATO', 'PIZZA', 'PRESENTE', 'PALHAÇO', 'PLANETA', 'PEIXE'], 
-    emojis: ['🦆', '🍕', '🎁', '🤡', '🪐', '🐟'] 
+  Q: { words: ['QUEIJO', 'QUENTE', 'QUADRADO'], emojis: ['🧀', '🔥', '⬜'] },
+  R: {
+    words: ['RATO', 'ROSA', 'RELÓGIO', 'ROBÔ', 'RAINHA', 'RAIO'],
+    emojis: ['🐭', '🌹', '⏰', '🤖', '👸', '⚡'],
   },
-  Q: { 
-    words: ['QUEIJO', 'QUENTE', 'QUADRADO'], 
-    emojis: ['🧀', '🔥', '⬜'] 
+  S: {
+    words: ['SOL', 'SAPATO', 'SORRISO', 'SAPO', 'SERPENTE', 'SINO'],
+    emojis: ['☀️', '👟', '😊', '🐸', '🐍', '🔔'],
   },
-  R: { 
-    words: ['RATO', 'ROSA', 'RELÓGIO', 'ROBÔ', 'RAINHA', 'RAIO'], 
-    emojis: ['🐭', '🌹', '⏰', '🤖', '👸', '⚡'] 
+  T: {
+    words: ['TIGRE', 'TARTARUGA', 'TELEFONE', 'TESOURA', 'TREM', 'TOMATE'],
+    emojis: ['🐅', '🐢', '📞', '✂️', '🚂', '🍅'],
   },
-  S: { 
-    words: ['SOL', 'SAPATO', 'SORRISO', 'SAPO', 'SERPENTE', 'SINO'], 
-    emojis: ['☀️', '👟', '😊', '🐸', '🐍', '🔔'] 
+  U: { words: ['UVA', 'URSO', 'UNICÓRNIO'], emojis: ['🍇', '🐻', '🦄'] },
+  V: {
+    words: ['VACA', 'VIOLÃO', 'VENTILADOR', 'VULCÃO', 'VELA', 'VAMPIRO'],
+    emojis: ['🐄', '🎻', '💨', '🌋', '🕯️', '🧛'],
   },
-  T: { 
-    words: ['TIGRE', 'TARTARUGA', 'TELEFONE', 'TESOURA', 'TREM', 'TOMATE'], 
-    emojis: ['🐅', '🐢', '📞', '✂️', '🚂', '🍅'] 
+  W: { words: ['WIFI', 'WEB'], emojis: ['📶', '🌐'] },
+  X: { words: ['XÍCARA', 'XADREZ'], emojis: ['☕', '♟️'] },
+  Y: { words: ['YOGA', 'YETI'], emojis: ['🧘', '🦣'] },
+  Z: {
+    words: ['ZEBRA', 'ZERO', 'ZANGADO', 'ZÍPER', 'ZUMBI'],
+    emojis: ['🦓', '0️⃣', '😠', '🤐', '🧟'],
   },
-  U: { 
-    words: ['UVA', 'URSO', 'UNICÓRNIO'], 
-    emojis: ['🍇', '🐻', '🦄'] 
-  },
-  V: { 
-    words: ['VACA', 'VIOLÃO', 'VENTILADOR', 'VULCÃO', 'VELA', 'VAMPIRO'], 
-    emojis: ['🐄', '🎻', '💨', '🌋', '🕯️', '🧛'] 
-  },
-  W: { 
-    words: ['WIFI', 'WEB'], 
-    emojis: ['📶', '🌐'] 
-  },
-  X: { 
-    words: ['XÍCARA', 'XADREZ'], 
-    emojis: ['☕', '♟️'] 
-  },
-  Y: { 
-    words: ['YOGA', 'YETI'], 
-    emojis: ['🧘', '🦣'] 
-  },
-  Z: { 
-    words: ['ZEBRA', 'ZERO', 'ZANGADO', 'ZÍPER', 'ZUMBI'], 
-    emojis: ['🦓', '0️⃣', '😠', '🤐', '🧟'] 
-  }
 }
 
 const difficulties = [
-  { 
-    id: 'EASY', 
-    name: 'Fácil', 
-    letters: ['A', 'E', 'I', 'O', 'U'] // Todas as vogais
+  { id: 'EASY', name: 'Fácil', letters: ['A', 'E', 'I', 'O', 'U'] },
+  {
+    id: 'MEDIUM',
+    name: 'Médio',
+    letters: [
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+      'L',
+      'M',
+      'N',
+      'O',
+      'P',
+      'R',
+      'S',
+      'T',
+    ],
   },
-  { 
-    id: 'MEDIUM', 
-    name: 'Médio', 
-    letters: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T'] // Letras mais comuns
-  },
-  { 
-    id: 'HARD', 
-    name: 'Difícil', 
-    letters: Object.keys(letterData) // Todas as letras do alfabeto
-  }
+  { id: 'HARD', name: 'Difícil', letters: Object.keys(letterData) },
 ]
 
-// Validar consistência dos dados do jogo e corrigir problemas
+// Validação de dados do jogo
 const validateGameData = () => {
-  const allLetters = new Set(Object.keys(letterData));
-  
-  // Verificar se todas as letras nas dificuldades existem nos dados
+  const allLetters = new Set(Object.keys(letterData))
   for (const diff of difficulties) {
-    const missingLetters = diff.letters.filter(letter => !allLetters.has(letter));
-    if (missingLetters.length > 0) {
-      // Corrigir: remover letras sem dados
-      diff.letters = diff.letters.filter(letter => allLetters.has(letter));
-    }
+    diff.letters = diff.letters.filter((letter) => allLetters.has(letter))
   }
-  
-  // Validar se cada letra tem dados completos
   for (const letter of allLetters) {
-    const data = letterData[letter];
+    const data = letterData[letter]
     if (!data.words || data.words.length === 0) {
-      console.error(`Letra ${letter} não possui palavras definidas`);
+      console.error(`Letra ${letter} não possui palavras definidas`)
+      data.words = ['PALAVRA']
     }
     if (!data.emojis || data.emojis.length === 0) {
-      data.emojis = ['📝', '📝', '📝'].slice(0, data.words?.length || 1);
+      data.emojis = Array(data.words.length).fill('📝')
     }
-    if (data.emojis?.length < data.words?.length) {
-      data.emojis = [
-        ...data.emojis, 
-        ...Array(data.words.length - data.emojis.length).fill('📝')
-      ];
+    if (data.emojis.length < data.words.length) {
+      data.emojis = [...data.emojis, ...Array(data.words.length - data.emojis.length).fill('📝')]
     }
   }
 }
 
-// Validar dados ao inicializar
-validateGameData();
+validateGameData()
 
 const encouragingMessages = [
-  "Muito bem! Você conhece suas letras! 📚",
-  "Excelente! Continue lendo! 🌟",
-  "Perfeito! Você está aprendendo muito! ✨",
-  "Fantástico! Suas habilidades de leitura são ótimas! 🎓",
-  "Incrível! Continue praticando! 💪"
+  'Muito bem! Você conhece suas letras! 📚',
+  'Excelente! Continue aprendendo! 🌟',
+  'Perfeito! Você está arrasando! ✨',
+  'Fantástico! Suas habilidades estão ótimas! 🎓',
+  'Incrível! Continue praticando! 💪',
 ]
 
-function LetterRecognition({ onBack }) {  const [currentLetter, setCurrentLetter] = useState(null);
-  const [options, setOptions] = useState([]);
-  const [gameStarted, setGameStarted] = useState(false);
-  const [difficulty, setDifficulty] = useState('EASY');
-  const [feedback, setFeedback] = useState(null);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [gameMode, setGameMode] = useState('word'); // 'word' ou 'letter'
-  const [startTime, setStartTime] = useState(null);
-  const [moveCount, setMoveCount] = useState(0);
-  const [adaptiveModel, setAdaptiveModel] = useState(null);
-  const [adaptiveParams, setAdaptiveParams] = useState(null);
-    // ✨ NOVO: Estados para controle de rotação de perguntas
-  const [usedQuestions, setUsedQuestions] = useState(new Set())
-  const [questionHistory, setQuestionHistory] = useState([])
-  const [totalQuestionsAnswered, setTotalQuestionsAnswered] = useState(0)
-  
-  const { playSound, playClick, playSuccess, playError } = useSound();
+// Reducer para gerenciar estado do jogo
+const initialState = {
+  currentLetter: null,
+  options: [],
+  gameStarted: false,
+  difficulty: 'EASY',
+  feedback: null,
+  selectedOption: null,
+  gameMode: 'word',
+  startTime: null,
+  moveCount: 0,
+  usedQuestions: new Set(),
+  totalQuestionsAnswered: 0,
+  questionHistory: [],
+}
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_CURRENT_LETTER':
+      return { ...state, currentLetter: action.payload }
+    case 'SET_OPTIONS':
+      return { ...state, options: action.payload }
+    case 'SET_GAME_STARTED':
+      return { ...state, gameStarted: action.payload }
+    case 'SET_DIFFICULTY':
+      return { ...state, difficulty: action.payload }
+    case 'SET_FEEDBACK':
+      return { ...state, feedback: action.payload }
+    case 'SET_SELECTED_OPTION':
+      return { ...state, selectedOption: action.payload }
+    case 'SET_GAME_MODE':
+      return { ...state, gameMode: action.payload }
+    case 'SET_START_TIME':
+      return { ...state, startTime: action.payload }
+    case 'INCREMENT_MOVE_COUNT':
+      return { ...state, moveCount: state.moveCount + 1 }
+    case 'SET_USED_QUESTIONS':
+      return { ...state, usedQuestions: action.payload }
+    case 'INCREMENT_TOTAL_QUESTIONS':
+      return { ...state, totalQuestionsAnswered: state.totalQuestionsAnswered + 1 }
+    case 'ADD_QUESTION_HISTORY':
+      return { ...state, questionHistory: [...state.questionHistory, action.payload] }
+    case 'RESET_QUESTION_HISTORY':
+      return { ...state, questionHistory: [] }
+    case 'RESET_GAME':
+      return { ...initialState, difficulty: state.difficulty }
+    default:
+      return state
+  }
+}
+
+// Componente principal
+const LetterRecognition = ({ onBack }) => {
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { playSound, playClick, playSuccess, playError } = useSound()
   const {
     speak,
     speakInstruction,
     speakFeedback,
-    speakQuestion,
     speakLetter,
     speakWord,
     autoSpeak,
-    stop
-  } = useTTS();
-
+    isTTSEnabled,
+  } = useTTS()
   const {
     progress,
     saveProgress,
     incrementAttempts,
     incrementSuccesses,
-    completeActivity,
-    updateScore,
-    updateLevel,
     recordSuccess,
     recordError,
-    resetProgress,
-    // Sistema de timing avançado
     startActivity,
-    pauseActivity,
-    resumeActivity,
-    finishActivity,
     getCurrentTimeMetrics,
-    sessionId,
-    isActivityActive,
-    isActivityPaused,
-    getFormattedTime  } = useProgress('letter-recognition');
+  } = useProgress('letter-recognition')
+  const { userId } = useUser()
 
-  const { userId } = useUser();
-
-  // Funções de controle de timing
-  const handlePauseResume = () => {
-    if (isActivityPaused) {
-      resumeActivity()
-    } else {
-      pauseActivity()
-    }
-  }
-
-  const handleFinishActivity = () => {
-    finishActivity(true) // true indica atividade completada com sucesso
-  }
-
+  // 🧠 Sistema Multissensorial - Configuração avançada
+  const {
+    recordAdvancedInteraction,
+    recordBehavioralIndicator,
+    startAdvancedSession,
+    stopAdvancedSession,
+    sessionInsights,
+  } = useAdvancedActivity('letter-recognition', {
+    enableSensorTracking: true,
+    enableGeoLocation: false,
+    enableNeurodivergenceAnalysis: true,
+    enableVisualProcessing: true,
+    enableAuditoryProcessing: true,
+  })
   // Aplicar configurações de acessibilidade
-  const applyAccessibilitySettings = () => {
-    if (prefersHighContrast()) {
-      document.body.classList.add('high-contrast')
-    }
-    if (prefersReducedMotion()) {
-      document.body.classList.add('reduced-motion')
-    }  }
-  
   useEffect(() => {
-    applyAccessibilitySettings();
-      // Inicializar modelo adaptativo com fallback
-    const initAdaptive = async () => {
-      try {
-        const model = createAdaptiveModel('letter-recognition', userId);
-        setAdaptiveModel(model);
-        
-        // Obter parâmetros adaptados com fallback
-        let params;
-        try {
-          params = await getAdaptiveParameters('letter-recognition', difficulty);
-        } catch (error) {
-          console.warn('Falha ao obter parâmetros adaptativos, usando padrões:', error);
-          params = {
-            difficulty,
-            parameters: {
-              focusLetters: difficulties.find(d => d.id === difficulty)?.letters || []
-            }          }        }
-        // Parâmetros adaptativos obtidos silenciosamente
-        setAdaptiveParams(params);
-        
-        if (params && params.difficulty !== difficulty) {
-          setDifficulty(params.difficulty);
+    if (prefersHighContrast()) document.body.classList.add('high-contrast')
+    if (prefersReducedMotion()) document.body.classList.add('reduced-motion')
+    return () => {
+      document.body.classList.remove('high-contrast', 'reduced-motion')
+    }
+  }, [])
+
+  // 🏁 Cleanup e finalização da sessão multissensorial
+  useEffect(() => {
+    return () => {
+      const handleExit = async () => {
+        const finalReport = await stopAdvancedSession()
+        if (finalReport) {
+          console.log('🏁 Sessão LetterRecognition finalizada:', finalReport)
         }
-      } catch (error) {
-        console.error('Erro ao inicializar modelo adaptativo:', error);
       }
+      handleExit()
     }
-    
-    initAdaptive();
-  }, [difficulty]);
-  // Reproduzir som da letra usando TTS hook
-  const speakLetterCustom = (letter) => {
-    if (!letter) {
-      console.warn('Tentativa de falar letra nula ou indefinida');
-      return;
-    }
+  }, [stopAdvancedSession])
 
-    try {
-      speakLetter(letter);
-      announceToScreenReader(`Letra ${letter}`);
-    } catch (error) {
-      console.error('Erro ao sintetizar voz da letra:', error);
-    }
-  }
+  // Função para gerar pergunta única
+  const generateUniqueQuestion = useCallback(
+    (availableLetters) => {
+      const maxAttempts = 50
+      let attempts = 0
 
-  // Reproduzir palavra usando TTS hook
-  const speakWordCustom = (word) => {
-    if (!word) {
-      console.warn('Tentativa de falar palavra nula ou indefinida');
-      return;
-    }
+      if (!availableLetters?.length) {
+        console.warn('Nenhuma letra disponível, usando fallback')
+        return {
+          targetLetter: 'A',
+          wordIndex: 0,
+          questionKey: 'A-0-word',
+          word: 'AVIÃO',
+          emoji: '✈️',
+        }
+      }
 
-    try {
-      speakWord(word);
-      announceToScreenReader(`Palavra ${word}`);
-    } catch (error) {
-      console.error('Erro ao sintetizar voz da palavra:', error);
-    }
-  }
-  
+      while (attempts < maxAttempts) {
+        const targetLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)]
+        const letterDataForTarget = letterData[targetLetter]
+        if (!letterDataForTarget?.words?.length) {
+          attempts++
+          continue
+        }
+
+        for (let i = 0; i < letterDataForTarget.words.length; i++) {
+          const questionKey = `${targetLetter}-${i}-${state.gameMode}`
+          if (!state.usedQuestions.has(questionKey)) {
+            return {
+              targetLetter,
+              wordIndex: i,
+              questionKey,
+              word: letterDataForTarget.words[i],
+              emoji: letterDataForTarget.emojis[i] || '📝',
+            }
+          }
+        }
+        attempts++
+      }
+
+      console.log('🔄 Todas as perguntas usadas, resetando...')
+      dispatch({ type: 'SET_USED_QUESTIONS', payload: new Set() })
+      dispatch({ type: 'ADD_QUESTION_HISTORY', payload: [] })
+      const targetLetter = availableLetters[0]
+      const wordIndex = 0
+      return {
+        targetLetter,
+        wordIndex,
+        questionKey: `${targetLetter}-${wordIndex}-${state.gameMode}`,
+        word: letterData[targetLetter].words[wordIndex],
+        emoji: letterData[targetLetter].emojis[wordIndex] || '📝',
+      }
+    },
+    [state.gameMode, state.usedQuestions]
+  )
   // Gerar nova rodada
-  const generateNewRound = () => {
-    try {      // CORREÇÃO: Validar dificuldade antes de usar
-      const difficultyData = difficulties.find(d => d.id === difficulty);
-      if (!difficultyData || !difficultyData.letters || difficultyData.letters.length === 0) {
-        console.warn(`Dificuldade "${difficulty}" não encontrada, usando "EASY" como fallback`);
-        setDifficulty('EASY');
-        // Usar dificuldade fácil como fallback
-        const easyData = difficulties.find(d => d.id === 'EASY');
-        if (!easyData) {
-          console.error('Falha crítica: dificuldade "EASY" não encontrada');
-          return;
-        }
-        var availableLetters = easyData.letters;
-      } else {
-        var availableLetters = difficultyData.letters;
-      }
-      
-      // Filtrar apenas letras que têm dados válidos
-      availableLetters = availableLetters.filter(letter => 
-        letterData[letter] && 
-        letterData[letter].words && 
-        letterData[letter].words.length > 0
-      );
-      
-      if (availableLetters.length === 0) {
-        console.error('Nenhuma letra válida encontrada para a dificuldade');
-        // Usar letras básicas como último recurso
-        availableLetters = ['A', 'B', 'C'].filter(letter => letterData[letter]);
-      }
-      
-      // Usar recomendações do modelo adaptativo para personalizar a dificuldade
-      if (adaptiveParams?.parameters?.focusLetters) {
-        const focusLetters = adaptiveParams.parameters.focusLetters.filter(letter => 
-          letterData[letter] && availableLetters.includes(letter)
-        );
-        if (focusLetters.length > 0) {
-          availableLetters = [...new Set([...focusLetters, ...availableLetters])].slice(0, availableLetters.length);
-        }
-      }
-        // ✨ NOVO: Gerar pergunta única usando sistema de rotação
-      const questionData = generateUniqueQuestion(availableLetters);
-      const { targetLetter, wordIndex, questionKey, word, emoji } = questionData;
-      
-      // Marcar pergunta como usada
-      setUsedQuestions(prev => new Set([...prev, questionKey]));
-      setQuestionHistory(prev => [...prev, questionKey]);
-      setTotalQuestionsAnswered(prev => prev + 1);
-      
-      console.log(`🎯 Nova pergunta única: ${targetLetter} - ${word} (${totalQuestionsAnswered + 1}ª pergunta)`);
-      
-      if (gameMode === 'word') {
-        setCurrentLetter(targetLetter);
-      } else {
-        setCurrentLetter({ word, letter: targetLetter });
-      }
-      
-      // Resetar contadores
-      setMoveCount(0);
-      setStartTime(Date.now());
-      
-      // Gerar opções usando dados da pergunta única
-      const correctData = letterData[targetLetter];
-      const correctIndex = wordIndex; // Usar índice específico da pergunta única
-      
-      if (gameMode === 'word') {
-        // Modo: mostrar letra, escolher palavra correta
-        const correctWord = correctData.words[correctIndex];
-        const correctEmoji = correctData.emojis[correctIndex] || '📝';
-        
-        // Gerar palavras incorretas de outras letras
-        const incorrectOptions = [];
-        const otherLetters = availableLetters.filter(l => l !== targetLetter);
-        
+  const generateNewRound = useCallback(() => {
+    try {
+      const availableLetters =
+        difficulties.find((d) => d.id === state.difficulty)?.letters || Object.keys(letterData)
+      const { targetLetter, wordIndex, questionKey, word, emoji } =
+        generateUniqueQuestion(availableLetters)
+
+      // 🎯 Tracking de geração de nova rodada
+      recordAdvancedInteraction({
+        type: 'round_generation',
+        subtype: 'letter_pattern_presentation',
+        sensoryModality: 'visual',
+        context: {
+          targetLetter,
+          difficulty: state.difficulty,
+          gameMode: state.gameMode,
+          questionType:
+            state.gameMode === 'word' ? 'letter_to_word_matching' : 'word_to_letter_matching',
+          visualPattern: state.gameMode === 'word' ? 'letter_recognition' : 'word_analysis',
+          totalQuestions: state.totalQuestionsAnswered + 1,
+        },
+      })
+
+      // 🔤 Tracking de apresentação de letra/palavra
+      recordAdvancedInteraction({
+        type: 'pattern_presentation',
+        subtype: state.gameMode === 'word' ? 'letter_display' : 'word_display',
+        sensoryModality: 'visual',
+        context: {
+          presentedStimulus: state.gameMode === 'word' ? targetLetter : word,
+          stimulusType: state.gameMode === 'word' ? 'alphabetic_character' : 'lexical_unit',
+          cognitiveLoad: state.difficulty,
+          visualProcessingPattern: 'character_recognition',
+        },
+      })
+
+      dispatch({
+        type: 'SET_USED_QUESTIONS',
+        payload: new Set([...state.usedQuestions, questionKey]),
+      })
+      dispatch({ type: 'ADD_QUESTION_HISTORY', payload: questionKey })
+      dispatch({ type: 'INCREMENT_TOTAL_QUESTIONS' })
+
+      if (state.gameMode === 'word') {
+        dispatch({ type: 'SET_CURRENT_LETTER', payload: targetLetter })
+        const correctOption = { letter: targetLetter, word, emoji, isCorrect: true }
+        const incorrectOptions = []
+        const otherLetters = availableLetters.filter((l) => l !== targetLetter)
+
         while (incorrectOptions.length < 3 && otherLetters.length > 0) {
-          const randomLetter = otherLetters[Math.floor(Math.random() * otherLetters.length)];
-          const randomData = letterData[randomLetter];
-          
-          if (randomData && randomData.words && randomData.words.length > 0) {
-            const randomIndex = Math.floor(Math.random() * randomData.words.length);
+          const randomLetter = otherLetters[Math.floor(Math.random() * otherLetters.length)]
+          const randomData = letterData[randomLetter]
+          if (randomData?.words?.length) {
+            const randomIndex = Math.floor(Math.random() * randomData.words.length)
             const option = {
               letter: randomLetter,
               word: randomData.words[randomIndex],
-              emoji: randomData.emojis ? randomData.emojis[randomIndex] || '📝' : '📝',
-              isCorrect: false
+              emoji: randomData.emojis?.[randomIndex] || '📝',
+              isCorrect: false,
             }
-            
-            if (!incorrectOptions.some(opt => opt.word === option.word)) {
-              incorrectOptions.push(option);
-            }
-          }
-          
-          // Remover letra usada para evitar repetição
-          const index = otherLetters.indexOf(randomLetter);
-          if (index > -1) otherLetters.splice(index, 1);
-        }
-        
-        // Se não conseguiu gerar opções suficientes, usar palavras padrão
-        while (incorrectOptions.length < 3) {
-          const fallbackWords = [
-            { letter: 'A', word: 'AVIÃO', emoji: '✈️' },
-            { letter: 'B', word: 'BOLA', emoji: '⚽' },
-            { letter: 'C', word: 'CASA', emoji: '🏠' }
-          ].filter(opt => opt.letter !== targetLetter);
-          
-          for (const opt of fallbackWords) {
-            if (incorrectOptions.length < 3 && !incorrectOptions.some(existing => existing.word === opt.word)) {
-              incorrectOptions.push({ ...opt, isCorrect: false });
+            if (!incorrectOptions.some((opt) => opt.word === option.word)) {
+              incorrectOptions.push(option)
             }
           }
-          break; // Evitar loop infinito
+          otherLetters.splice(otherLetters.indexOf(randomLetter), 1)
         }
-        
-        // Adicionar opção correta
-        const allOptions = [
-          ...incorrectOptions,
-          {
-            letter: targetLetter,
-            word: correctWord,
-            emoji: correctEmoji,
-            isCorrect: true
-          }
-        ];
-        
-        // Embaralhar opções
-        setOptions(allOptions.sort(() => Math.random() - 0.5));
-        
-      } else {
-        // Modo: mostrar palavra, escolher letra correta
-        const correctWord = correctData.words[correctIndex];
-        setCurrentLetter({ word: correctWord, letter: targetLetter });
-        
-        // Gerar letras incorretas
-        const incorrectLetters = [];
-        const otherLetters = availableLetters.filter(l => l !== targetLetter);
-        
-        while (incorrectLetters.length < 3 && otherLetters.length > 0) {
-          const randomLetter = otherLetters[Math.floor(Math.random() * otherLetters.length)];
-          if (!incorrectLetters.includes(randomLetter)) {
-            incorrectLetters.push(randomLetter);
-          }
-          // Remover letra para evitar repetição
-          const index = otherLetters.indexOf(randomLetter);
-          if (index > -1) otherLetters.splice(index, 1);
-        }
-        
-        // Se não conseguiu gerar letras suficientes, usar letras padrão
-        while (incorrectLetters.length < 3) {
-          const fallbackLetters = ['A', 'B', 'C', 'D', 'E'].filter(l => 
-            l !== targetLetter && !incorrectLetters.includes(l)
-          );
-          if (fallbackLetters.length > 0) {
-            incorrectLetters.push(fallbackLetters[0]);
-          } else {
-            break; // Evitar loop infinito
-          }
-        }
-        
-        // Criar opções de letras
-        const allOptions = [
-          ...incorrectLetters.map(letter => ({ letter, isCorrect: false })),
-          { letter: targetLetter, isCorrect: true }
-        ];
-        
-        setOptions(allOptions.sort(() => Math.random() - 0.5));
-      }
-      
-      setSelectedOption(null);
-      setFeedback(null);
-      
-    } catch (error) {
-      console.error('Erro ao gerar nova rodada:', error);
-      // Em caso de erro, definir um estado mínimo funcional
-      setCurrentLetter('A');
-      setOptions([
-        { letter: 'A', word: 'AVIÃO', emoji: '✈️', isCorrect: true },
-        { letter: 'B', word: 'BOLA', emoji: '⚽', isCorrect: false },
-        { letter: 'C', word: 'CASA', emoji: '🏠', isCorrect: false }
-      ]);
-    }
-  }  // ✨ NOVA: Função para gerar pergunta única com rotação inteligente - CORRIGIDA
-  const generateUniqueQuestion = (availableLetters) => {
-    const maxAttempts = 50; // Evitar loop infinito
-    let attempts = 0;
-    
-    // Verificar se temos letras disponíveis
-    if (!availableLetters || availableLetters.length === 0) {
-      console.error('Não há letras disponíveis para gerar perguntas');
-      // Usar letras básicas como fallback
-      availableLetters = ['A', 'B', 'C', 'D', 'E'];
-    }
-    
-    while (attempts < maxAttempts) {
-      // Escolher letra aleatória com verificação de segurança
-      const randomIndex = Math.floor(Math.random() * availableLetters.length);
-      const targetLetter = availableLetters[randomIndex] || 'A'; // Fallback para 'A' se undefined
-      const letterDataForTarget = letterData[targetLetter];
-      
-      // Verificar se temos dados para esta letra
-      if (!letterDataForTarget || !letterDataForTarget.words || !letterDataForTarget.words.length) {
-        console.warn(`Dados ausentes para a letra ${targetLetter}, tentando outra letra`);
-        attempts++;
-        continue;
-      }
-      
-      // Verificar todas as palavras desta letra para encontrar uma não usada
-      for (let i = 0; i < letterDataForTarget.words.length; i++) {
-        const questionKey = `${targetLetter}-${i}-${gameMode}`;
-        
-        if (!usedQuestions || !usedQuestions.has(questionKey)) {
-          // Garantir que emoji exista e seja válido
-          const word = letterDataForTarget.words[i];
-          const emoji = letterDataForTarget.emojis && i < letterDataForTarget.emojis.length 
-                      ? letterDataForTarget.emojis[i] 
-                      : '📝';
-          
-          return {
-            targetLetter,
-            wordIndex: i,
-            questionKey,
-            word: word || targetLetter, // Fallback para letra se palavra for undefined
-            emoji: emoji
-          };
-        }
-      }
-      
-      attempts++;
-    }
-    
-    // Se chegou aqui, todas as perguntas foram usadas - resetar histórico
-    console.log('🔄 Todas as perguntas foram usadas! Resetando para novas rodadas...');
-    try {
-      setUsedQuestions(new Set());
-      setQuestionHistory([]);
-    } catch (error) {
-      console.error('Erro ao resetar histórico de perguntas:', error);
-    }
-    
-    // Gerar pergunta após reset com verificações de segurança
-    const safeIndex = Math.floor(Math.random() * availableLetters.length);
-    const targetLetter = availableLetters[safeIndex] || 'A';
-    const letterDataForTarget = letterData[targetLetter] || letterData['A'];
-    
-    // Verificar se temos palavras disponíveis
-    if (!letterDataForTarget.words || !letterDataForTarget.words.length) {
-      // Criar dados de fallback
-      return {
-        targetLetter,
-        wordIndex: 0,
-        questionKey: `${targetLetter}-0-${gameMode}`,
-        word: targetLetter === 'A' ? 'AVE' : targetLetter + 'ALA',
-        emoji: '📝'
-      };
-    }
-    
-    const wordIndex = Math.floor(Math.random() * letterDataForTarget.words.length);
-    
-    return {
-      targetLetter,
-      wordIndex,
-      questionKey: `${targetLetter}-${wordIndex}-${gameMode}`,
-      word: letterDataForTarget.words[wordIndex] || targetLetter,
-      emoji: letterDataForTarget.emojis && wordIndex < letterDataForTarget.emojis.length
-           ? letterDataForTarget.emojis[wordIndex] 
-           : '📝'
-    };
-  };
-  // Lidar com seleção de opção
-  const handleOptionSelect = (option) => {
-    if (!option) {
-      console.error('Opção selecionada é nula ou indefinida');
-      return;
-    }
-    
-    if (selectedOption) return // Evitar cliques múltiplos
-    
-    try {
-      setSelectedOption(option)
-      incrementAttempts() // Sempre incrementar tentativas
-      setMoveCount(prev => prev + 1)
-        if (option.isCorrect) {
-        incrementSuccesses()
-        
-        // Calcular pontuação baseada na dificuldade e tempo de resposta
-        const difficultyBonus = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 10 : 15
-        const timeBonus = Math.max(0, 10 - Math.floor((Date.now() - startTime) / 1000))
-        const additionalPoints = difficultyBonus + timeBonus
-          // recordSuccess já adiciona 10 pontos base + bônus adicional
-        const totalScore = recordSuccess(additionalPoints)
-        
-        console.log(`Pontuação atualizada: ${totalScore} (10 base + ${additionalPoints} bônus)`)
-        
-        vibrateSuccess()
-        playSuccess()
-          // Salvar dados para o modelo adaptativo
-        if (adaptiveModel) {
-          const gameData = {
-            difficulty,
-            letter: typeof currentLetter === 'string' ? currentLetter : currentLetter.letter,
-            timeSpent: Math.floor((Date.now() - startTime) / 1000),
-            moveCount,
-            accuracy: 100,
-            score: 10 + additionalPoints, // Score total desta rodada
-            gameMode
-          }
-        
-        // Obter recomendação para próxima rodada
-        const recommendation = adaptiveModel.saveGameData(gameData)
-        if (recommendation && recommendation !== difficulty) {
-          setDifficulty(recommendation)
-        }
-      }
-          // Mensagem de feedback positivo com pontuação
-        const message = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)]
-        setFeedback({
-          type: 'success',
-          message: `${message} +${10 + additionalPoints} pontos!`
-        })
 
-        // TTS: Anunciar sucesso
-        speakFeedback(`${message} Ganhou ${10 + additionalPoints} pontos!`, true)
-        // Salvar progresso geral
-      saveProgress()
-      
-      // Transição automática após acerto (3 segundos)
-      setTimeout(() => {
-        setFeedback(null);
-        setSelectedOption(null);
-        generateNewRound();
-      }, 3000)
-    } else {
-      recordError()
-      vibrateError()
-      playError()
-      
-      // Salvar dados para o modelo adaptativo mesmo em caso de erro
-      if (adaptiveModel) {
-        const gameData = {
-          difficulty,
-          letter: typeof currentLetter === 'string' ? currentLetter : currentLetter.letter,
-          timeSpent: Math.floor((Date.now() - startTime) / 1000),
-          moveCount,
-          accuracy: 0,
-          score: 0,
-          gameMode
+        dispatch({
+          type: 'SET_OPTIONS',
+          payload: [...incorrectOptions, correctOption].sort(() => Math.random() - 0.5),
+        })
+      } else {
+        dispatch({ type: 'SET_CURRENT_LETTER', payload: { word, letter: targetLetter } })
+        const incorrectLetters = []
+        const otherLetters = availableLetters.filter((l) => l !== targetLetter)
+
+        while (incorrectLetters.length < 3 && otherLetters.length > 0) {
+          const randomLetter = otherLetters[Math.floor(Math.random() * otherLetters.length)]
+          if (!incorrectLetters.includes(randomLetter)) {
+            incorrectLetters.push(randomLetter)
+          }
+          otherLetters.splice(otherLetters.indexOf(randomLetter), 1)
         }
-        adaptiveModel.saveGameData(gameData)
+
+        const allOptions = [
+          ...incorrectLetters.map((letter) => ({ letter, isCorrect: false })),
+          { letter: targetLetter, isCorrect: true },
+        ]
+        dispatch({ type: 'SET_OPTIONS', payload: allOptions.sort(() => Math.random() - 0.5) })
       }
-      
-      setFeedback({
-        type: 'error',
-        message: 'Tente novamente! Pense na primeira letra da palavra. 🤔'
+
+      dispatch({ type: 'SET_SELECTED_OPTION', payload: null })
+      dispatch({ type: 'SET_FEEDBACK', payload: null })
+      dispatch({ type: 'SET_START_TIME', payload: Date.now() })
+      dispatch({ type: 'INCREMENT_MOVE_COUNT' })
+    } catch (error) {
+      console.error('Erro ao gerar nova rodada:', error)
+      dispatch({
+        type: 'SET_FEEDBACK',
+        payload: { type: 'error', message: 'Erro ao carregar nova rodada. Tente novamente.' },
+      })
+    }
+  }, [state.difficulty, state.gameMode, state.usedQuestions, state.totalQuestionsAnswered])
+  // Iniciar jogo
+  const startGame = useCallback(async () => {
+    try {
+      await startActivity()
+
+      // 🎯 Iniciar sessão multissensorial avançada
+      await startAdvancedSession()
+
+      // 📊 Tracking de início da atividade
+      recordAdvancedInteraction({
+        type: 'activity_start',
+        subtype: 'letter_recognition_initiation',
+        sensoryModality: 'visual',
+        context: {
+          difficulty: state.difficulty,
+          gameMode: state.gameMode,
+          activityType: 'pattern_recognition',
+          cognitiveSkills: ['visual_processing', 'letter_recognition', 'phonetic_awareness'],
+          expectedOutcomes: ['alphabet_mastery', 'reading_readiness'],
+        },
       })
 
-      // TTS: Anunciar erro
-      speakFeedback('Tente novamente! Pense na primeira letra da palavra.', false)      // Resetar após delay
-      setTimeout(() => {
-        setSelectedOption(null)
-        setFeedback(null)
-      }, 2000)
-    }
+      dispatch({ type: 'SET_GAME_STARTED', payload: true })
+      dispatch({ type: 'SET_USED_QUESTIONS', payload: new Set() })
+      dispatch({ type: 'SET_START_TIME', payload: Date.now() })
+      generateNewRound()
+      announceToScreenReader('Jogo de reconhecimento de letras iniciado!')
+      autoSpeak('Jogo de reconhecimento de letras iniciado! Vamos aprender o alfabeto!', 1000)
     } catch (error) {
-      console.error('Erro ao processar seleção de opção:', error);
-      // Feedback de erro para o usuário em caso de falha
-      setFeedback({
-        type: 'error',
-        message: 'Ocorreu um erro. Tente novamente!'
-      });
-      setTimeout(() => {
-        setSelectedOption(null)
-        setFeedback(null)      }, 2000);
+      console.error('Erro ao iniciar jogo:', error)
+      dispatch({
+        type: 'SET_FEEDBACK',
+        payload: { type: 'error', message: 'Erro ao iniciar o jogo. Tente novamente.' },
+      })
     }
-  }
-  
-  // Iniciar jogo
-  const startGame = async () => {
-    console.log('🎮 Iniciando jogo de reconhecimento de letras...');
-    
-    // ✅ CORREÇÃO: Iniciar cronometragem da atividade ANTES de resetar
-    await startActivity();
-    
-    // Resetar apenas a sessão, não o progresso total
-    setUsedQuestions(new Set());
-    setQuestionHistory([]);
-    setTotalQuestionsAnswered(0);
-    
-    // Garantir que o modelo adaptativo está inicializado
-    if (!adaptiveModel || !adaptiveParams) {      console.log('🤖 Inicializando modelo adaptativo...');
-      try {
-        const model = createAdaptiveModel('letter-recognition', userId);
-        setAdaptiveModel(model);
-        
-        // Obter parâmetros adaptados com fallback
-        let params;
-        try {
-          params = await getAdaptiveParameters('letter-recognition', difficulty);
-          console.log('⚙️ Parâmetros adaptativos obtidos:', params);
-          setAdaptiveParams(params);
-          
-          if (params && params.difficulty !== difficulty) {
-            setDifficulty(params.difficulty);
-          }
-        } catch (error) {
-          console.warn('⚠️ Falha ao obter parâmetros adaptativos, usando padrões:', error);
-          params = {
-            difficulty,
-            parameters: {
-              focusLetters: difficulties.find(d => d.id === difficulty)?.letters || []
-            }
-          };
-          setAdaptiveParams(params);
-        }
-      } catch (error) {
-        console.error('❌ Erro ao inicializar modelo adaptativo:', error);
-      }
-    }
-    
-    setGameStarted(true);
-    setFeedback(null);
-    setSelectedOption(null);
-    setStartTime(Date.now());
-      console.log('📊 Progresso inicial:', progress);
-    
-    generateNewRound();
-    announceToScreenReader("Jogo de reconhecimento de letras iniciado!");
-
-    // TTS: Anunciar início do jogo
-    autoSpeak("Jogo de reconhecimento de letras iniciado! Vamos aprender o alfabeto!", 1000);
-  }
-
+  }, [startActivity, startAdvancedSession, state.difficulty, state.gameMode, generateNewRound])
   // Alternar modo de jogo
-  const toggleGameMode = () => {
-    try {
-      const newMode = gameMode === 'word' ? 'letter' : 'word';
-      setGameMode(newMode);
-      
-      // Limpar estado atual
-      setSelectedOption(null);
-      setFeedback(null);
-      
-      // Regenerar o jogo para o novo modo
-      if (gameStarted && currentLetter) {
-        // Pequeno delay para garantir que o estado foi atualizado
-        setTimeout(() => {
-          generateNewRound();
-        }, 100);
-      }
-      
-      // Anunciar mudança para acessibilidade
-      announceToScreenReader(`Modo alterado para: ${newMode === 'word' ? 'Reconhecer palavras' : 'Reconhecer letras'}`);
+  const toggleGameMode = useCallback(() => {
+    const newMode = state.gameMode === 'word' ? 'letter' : 'word'
 
-      // TTS: Anunciar mudança de modo
-      speakInstruction(`Modo alterado para ${newMode === 'word' ? 'reconhecer palavras' : 'reconhecer letras'}.`);    } catch (error) {
-      console.error('Erro ao alternar modo de jogo:', error);
+    // 🔄 Tracking de mudança de modo
+    recordAdvancedInteraction({
+      type: 'mode_change',
+      subtype: 'cognitive_strategy_shift',
+      sensoryModality: 'visual',
+      context: {
+        previousMode: state.gameMode,
+        newMode,
+        cognitiveAdaptation:
+          newMode === 'word' ? 'letter_to_word_association' : 'word_to_letter_decomposition',
+        learningStrategy: 'multimodal_approach',
+      },
+    })
+
+    dispatch({ type: 'SET_GAME_MODE', payload: newMode })
+    dispatch({ type: 'SET_SELECTED_OPTION', payload: null })
+    dispatch({ type: 'SET_FEEDBACK', payload: null })
+    if (state.gameStarted && state.currentLetter) {
+      setTimeout(generateNewRound, 100)
     }
-  }
+    announceToScreenReader(
+      `Modo alterado para: ${newMode === 'word' ? 'Reconhecer palavras' : 'Reconhecer letras'}`
+    )
+    speakInstruction(
+      `Modo alterado para ${newMode === 'word' ? 'reconhecer palavras' : 'reconhecer letras'}.`
+    )
+  }, [
+    state.gameMode,
+    state.gameStarted,
+    state.currentLetter,
+    generateNewRound,
+    recordAdvancedInteraction,
+  ]) // Lidar com seleção de opção
+  const handleOptionSelect = useCallback(
+    (option) => {
+      if (!option || state.selectedOption) return
+
+      const responseTime = Date.now() - state.startTime
+      const isCorrect = option.isCorrect
+
+      // 🎯 Tracking detalhado da seleção
+      recordAdvancedInteraction({
+        type: 'pattern_selection',
+        subtype: state.gameMode === 'word' ? 'word_choice' : 'letter_choice',
+        sensoryModality: 'visual',
+        responseTime,
+        accuracy: isCorrect,
+        context: {
+          selectedOption: state.gameMode === 'word' ? option.word : option.letter,
+          correctAnswer:
+            state.gameMode === 'word'
+              ? state.options.find((opt) => opt.isCorrect)?.word
+              : state.options.find((opt) => opt.isCorrect)?.letter,
+          difficulty: state.difficulty,
+          cognitiveProcess:
+            state.gameMode === 'word' ? 'letter_word_association' : 'word_letter_analysis',
+          visualProcessingSpeed:
+            responseTime < 3000 ? 'fast' : responseTime < 6000 ? 'moderate' : 'slow',
+        },
+      })
+
+      dispatch({ type: 'SET_SELECTED_OPTION', payload: option })
+      incrementAttempts()
+      dispatch({ type: 'INCREMENT_MOVE_COUNT' })
+
+      if (option.isCorrect) {
+        incrementSuccesses()
+
+        // ✅ Tracking de sucesso específico para reconhecimento de padrões
+        recordAdvancedInteraction({
+          type: 'pattern_success',
+          subtype: 'letter_recognition_success',
+          sensoryModality: 'visual',
+          responseTime,
+          accuracy: true,
+          context: {
+            patternType:
+              state.gameMode === 'word' ? 'letter_to_word_matching' : 'word_to_letter_matching',
+            cognitiveAchievement: 'visual_pattern_recognition',
+            learningIndicator: 'alphabet_mastery_progress',
+          },
+        })
+
+        const difficultyBonus =
+          state.difficulty === 'EASY' ? 5 : state.difficulty === 'MEDIUM' ? 10 : 15
+        const timeBonus = Math.max(0, 10 - Math.floor((Date.now() - state.startTime) / 1000))
+        const baseScore = 10
+        const totalScore = recordSuccess(baseScore + difficultyBonus + timeBonus)
+        vibrateSuccess()
+        playSuccess()
+        const successMessage =
+          encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)]
+
+        // Mostrar feedback de sucesso para o usuário
+        speakFeedback(successMessage, true)
+        dispatch({
+          type: 'SET_FEEDBACK',
+          payload: {
+            type: 'success',
+            message: `${successMessage} +${baseScore + difficultyBonus + timeBonus} pontos!`,
+          },
+        })
+        setTimeout(() => {
+          dispatch({ type: 'SET_FEEDBACK', payload: null })
+          dispatch({ type: 'SET_SELECTED_OPTION', payload: null })
+          generateNewRound()
+        }, 2000)
+      } else {
+        recordError()
+
+        // ❌ Tracking de erro específico para reconhecimento de padrões
+        recordAdvancedInteraction({
+          type: 'pattern_error',
+          subtype: 'letter_recognition_error',
+          sensoryModality: 'visual',
+          responseTime,
+          accuracy: false,
+          context: {
+            errorType: state.gameMode === 'word' ? 'letter_word_mismatch' : 'word_letter_mismatch',
+            selectedWrong: state.gameMode === 'word' ? option.word : option.letter,
+            correctAnswer:
+              state.gameMode === 'word'
+                ? state.options.find((opt) => opt.isCorrect)?.word
+                : state.options.find((opt) => opt.isCorrect)?.letter,
+            visualProcessingChallenge: 'pattern_discrimination',
+            potentialLearningGap: 'alphabet_recognition',
+          },
+        })
+
+        vibrateError()
+        playError()
+        const errorMessage = 'Tente novamente! Pense na primeira letra da palavra. 🤔'
+        dispatch({ type: 'SET_FEEDBACK', payload: { type: 'error', message: errorMessage } })
+        speakFeedback(errorMessage.replace('🤔', ''), false)
+        setTimeout(() => {
+          dispatch({ type: 'SET_SELECTED_OPTION', payload: null })
+          dispatch({ type: 'SET_FEEDBACK', payload: null })
+        }, 1500)
+      }
+    },
+    [
+      state.selectedOption,
+      state.difficulty,
+      state.startTime,
+      state.gameMode,
+      state.options,
+      incrementAttempts,
+      incrementSuccesses,
+      recordSuccess,
+      recordError,
+      saveProgress,
+      generateNewRound,
+      recordAdvancedInteraction,
+    ]
+  )
+
+  // Componente de renderização
   return (
     <GameContainer>
       <GameHeader>
@@ -972,6 +828,7 @@ function LetterRecognition({ onBack }) {  const [currentLetter, setCurrentLetter
           onClick={onBack}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          aria-label="Voltar ao menu principal"
         >
           ⬅️ Voltar
         </BackButton>
@@ -983,68 +840,41 @@ function LetterRecognition({ onBack }) {  const [currentLetter, setCurrentLetter
           <span>Reconhecimento de Letras</span>
         </ActivityMainTitle>
         <ActivitySubtitle>
-          {!gameStarted ? 
-            "Vamos aprender as letras do alfabeto" :
-            `Modo: ${gameMode === 'word' ? 'Palavra' : 'Letra'} - ${progress.score || 0} pontos`
-          }
+          {!state.gameStarted
+            ? 'Vamos aprender as letras do alfabeto'
+            : `Modo: ${state.gameMode === 'word' ? 'Palavra' : 'Letra'} - ${progress.score || 0} pontos`}
         </ActivitySubtitle>
       </ActivityTitleSection>
 
-      <InstructionText
-        onClick={() => {
-          if (!gameStarted) {
-            speakInstruction("Vamos aprender as letras! Escolha a dificuldade para começar.")
-          } else if (gameMode === 'word') {
-            speakInstruction("Qual palavra começa com esta letra?")
-          } else {
-            speakInstruction("Com qual letra esta palavra começa?")
-          }
-        }}
-      >
-        {!gameStarted ? (
-          "📚 Vamos aprender as letras! Escolha a dificuldade para começar."
-        ) : gameMode === 'word' ? (
-          "Qual palavra começa com esta letra?"
-        ) : (
-          "Com qual letra esta palavra começa?"
-        )}
-      </InstructionText>
-
-      {!gameStarted ? (
+      {!state.gameStarted ? (
         <>
+          <InstructionText
+            onClick={() =>
+              speakInstruction('Vamos aprender as letras! Escolha a dificuldade para começar.')
+            }
+            role="button"
+            aria-label="Instrução: Vamos aprender as letras"
+          >
+            📚 Vamos aprender as letras! Escolha a dificuldade para começar.
+          </InstructionText>
           <DifficultySelector>
             {[
-              {
-                id: 'easy',
-                name: '🟢 Fácil',
-                description: '2 letras básicas',
-                icon: '😊'
-              },
-              {
-                id: 'medium',
-                name: '🟡 Médio',
-                description: '3 letras variadas',
-                icon: '😐'
-              },
-              {
-                id: 'hard',
-                name: '🔴 Difícil',
-                description: '4 letras complexas',
-                icon: '🧠'
-              }
+              { id: 'EASY', name: '🟢 Fácil', description: 'Vogais básicas', icon: '😊' },
+              { id: 'MEDIUM', name: '🟡 Médio', description: 'Letras comuns', icon: '😐' },
+              { id: 'HARD', name: '🔴 Difícil', description: 'Todas as letras', icon: '🧠' },
             ].map((diff) => (
               <DifficultyButton
                 key={diff.id}
-                isActive={difficulty === diff.id}
+                isActive={state.difficulty === diff.id}
                 onClick={() => {
-                  setDifficulty(diff.id);
-                  playClick();
-                  // TTS: Anunciar dificuldade selecionada
-                  speak(`Dificuldade ${diff.name} selecionada. ${diff.description}`);
+                  dispatch({ type: 'SET_DIFFICULTY', payload: diff.id })
+                  playClick()
+                  speak(`Dificuldade ${diff.name} selecionada. ${diff.description}`)
                 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 themeColor={THEME_COLOR}
+                aria-label={`Selecionar dificuldade ${diff.name}`}
               >
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>{diff.icon}</div>
                 <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{diff.name}</div>
@@ -1052,181 +882,208 @@ function LetterRecognition({ onBack }) {  const [currentLetter, setCurrentLetter
               </DifficultyButton>
             ))}
           </DifficultySelector>
-          
           <ControlButtons>
             <ActionButton
               onClick={() => {
-                playClick();
-                autoSpeak("Começando jogo de reconhecimento de letras!");
-                startGame();
+                playClick()
+                autoSpeak('Começando jogo de reconhecimento de letras!')
+                startGame()
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               themeColor={THEME_COLOR}
+              aria-label="Iniciar jogo de reconhecimento de letras"
             >
               🔤🎵 Começar a Aprender
             </ActionButton>
           </ControlButtons>
         </>
       ) : (
-        <ControlButtons>
-          <ActionButton
-            className="secondary"
-            onClick={toggleGameMode}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            🔄 Trocar Modo: {gameMode === 'word' ? 'Palavra→Letra' : 'Letra→Palavra'}
-          </ActionButton>
-            <ActionButton
-            className={isTTSEnabled ? "audio" : "audio disabled"}
-            onClick={() => {
-              try {
-                if (!isTTSEnabled) {
-                  // Mostrar mensagem informando que o TTS está desabilitado
-                  setFeedback({
-                    type: 'info',
-                    message: 'Conversão de texto para voz está desativada nas configurações de acessibilidade'
-                  });
-                  setTimeout(() => setFeedback(null), 3000);
-                  return;
-                }
-                
-                if (gameMode === 'word') {
-                  const letterToSpeak = typeof currentLetter === 'string' ? currentLetter : 
-                                       (currentLetter && currentLetter.letter) ? currentLetter.letter : null;
-                  if (letterToSpeak) {
-                    speakLetter(letterToSpeak);
-                  }
-                } else if (currentLetter && typeof currentLetter === 'object') {
-                  if (currentLetter.word) {
-                    speakWord(currentLetter.word);
-                  }
-                }
-              } catch (error) {
-                console.error('Erro ao tentar reproduzir áudio:', error);
-              }
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={!currentLetter}
-            title={isTTSEnabled ? "Ouvir novamente" : "Texto para voz desativado nas configurações"}
-          >
-            {isTTSEnabled ? "🔊 Ouvir Novamente" : "🔇 Áudio Desativado"}
-          </ActionButton>
-        </ControlButtons>
-      )}      {gameStarted && (        
-        <ProgressDisplay>
-          <span>Pontos: {progress.score}</span>
-          <span>•</span>
-          <span>Precisão: {progress.accuracy}%</span>
-          <span>•</span>
-          <span>📝 Perguntas: {totalQuestionsAnswered}</span>
-          <span>•</span>
-          <StarDisplay>
-            {Array.from({ length: 3 }, (_, i) => (
-              <span key={i}>
-                {i < progress.stars ? '⭐' : '☆'}
-              </span>
-            ))}
-          </StarDisplay>        
-        </ProgressDisplay>
-      )}{/* Timer da atividade - invisível, apenas para métricas internas */}
-      <ActivityTimer
-        timeMetrics={isActivityActive ? getCurrentTimeMetrics() : null}
-        onStart={startActivity}
-        onPause={pauseActivity}
-        onResume={resumeActivity}
-        onFinish={finishActivity}
-        showControls={false}
-        compact={false}
-        invisible={true}
-      />
-      
-      {gameStarted && currentLetter && (
-        <TargetLetterDisplay
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}          onClick={() => {
-            try {
-              if (gameMode === 'word') {
-                const letterToSpeak = typeof currentLetter === 'string' ? currentLetter : 
-                                     (currentLetter && currentLetter.letter) ? currentLetter.letter : 'A';
-                // Reproduzindo letra usando TTS hook
-                speakLetterCustom(letterToSpeak);
-              } else {
-                const wordToSpeak = typeof currentLetter === 'object' && currentLetter.word ? currentLetter.word : '';
-                // Reproduzindo palavra usando TTS hook
-                speakWordCustom(wordToSpeak);
-              }
-            } catch (error) {
-              console.error('Erro ao falar letra/palavra:', error);
+        <>
+          <InstructionText
+            onClick={() =>
+              speakInstruction(
+                state.gameMode === 'word'
+                  ? 'Qual palavra começa com esta letra?'
+                  : 'Com qual letra esta palavra começa?'
+              )
             }
-          }}
-        >
-          {gameMode === 'word' ? (
-            // Modo letra: mostrar a letra
-            <div className="target-display">
-              {typeof currentLetter === 'string' ? currentLetter : 
-               (currentLetter && currentLetter.letter) ? currentLetter.letter : '?'}
-            </div>
-          ) : (
-            // Modo palavra: mostrar a palavra
-            <div className="target-display">
-              {typeof currentLetter === 'object' && currentLetter.word ? currentLetter.word : '?'}
-            </div>
-          )}
-          <LetterInfo>
-            {gameMode === 'word' ? 'Clique para ouvir a letra' : 'Clique para ouvir a palavra'}
-          </LetterInfo>        </TargetLetterDisplay>
-      )}
-
-      {gameStarted && options.length > 0 && (
-        <OptionsGrid>
-          {options.map((option, index) => (
-            <LetterOption
-              key={index}
-              onClick={() => handleOptionSelect(option)}
-              className={
-                selectedOption === option 
-                  ? option.isCorrect ? 'correct' : 'incorrect'
-                  : ''
-              }
+            role="button"
+            aria-label="Instrução do jogo"
+          >
+            {state.gameMode === 'word'
+              ? 'Qual palavra começa com esta letra?'
+              : 'Com qual letra esta palavra começa?'}
+          </InstructionText>
+          <ControlButtons>
+            <ActionButton
+              className="secondary"
+              onClick={toggleGameMode}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}              transition={{ duration: 0.3, delay: index * 0.1 }}
+              aria-label={`Trocar para modo ${state.gameMode === 'word' ? 'letra' : 'palavra'}`}
             >
-              {gameMode === 'word' ? (
-                <>
-                  <OptionImage>
-                    {option.emoji || '📝'}
-                  </OptionImage>
-                  <OptionWord>{option.word}</OptionWord>
-                </>
-              ) : (
-                <OptionLetter>{option.letter}</OptionLetter>
-              )}
-            </LetterOption>
-          ))}
-        </OptionsGrid>
-      )}
+              🔄 Trocar Modo: {state.gameMode === 'word' ? 'Palavra→Letra' : 'Letra→Palavra'}
+            </ActionButton>{' '}
+            <ActionButton
+              className={isTTSEnabled ? 'audio' : 'audio disabled'}
+              onClick={() => {
+                if (!isTTSEnabled) {
+                  dispatch({
+                    type: 'SET_FEEDBACK',
+                    payload: {
+                      type: 'info',
+                      message: 'Texto para voz desativado nas configurações.',
+                    },
+                  })
+                  setTimeout(() => dispatch({ type: 'SET_FEEDBACK', payload: null }), 3000)
+                  return
+                }
 
-      <AnimatePresence>
-        {feedback && (
-          <FeedbackMessage
-            className={feedback.type}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {feedback.message}
-          </FeedbackMessage>
-        )}
-      </AnimatePresence>
+                // 🔊 Tracking de uso de TTS
+                recordAdvancedInteraction({
+                  type: 'audio_playback',
+                  subtype: 'tts_activation',
+                  sensoryModality: 'auditory',
+                  context: {
+                    ttsContent:
+                      state.gameMode === 'word' ? state.currentLetter : state.currentLetter?.word,
+                    auditorySupport: 'speech_synthesis',
+                    accessibilityFeature: 'text_to_speech',
+                    learningModality: 'auditory_reinforcement',
+                  },
+                })
+
+                if (state.gameMode === 'word') {
+                  speakLetter(state.currentLetter || 'A')
+                } else {
+                  speakWord(state.currentLetter?.word || '')
+                }
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              disabled={!state.currentLetter}
+              aria-label={isTTSEnabled ? 'Ouvir novamente' : 'Áudio desativado'}
+            >
+              {isTTSEnabled ? '🔊 Ouvir Novamente' : '🔇 Áudio Desativado'}
+            </ActionButton>
+          </ControlButtons>
+          <ProgressDisplay>
+            <span>Pontos: {progress.score || 0}</span>
+            <span>•</span>
+            <span>Precisão: {progress.accuracy || 0}%</span>
+            <span>•</span>
+            <span>📝 Perguntas: {state.totalQuestionsAnswered}</span>
+            <span>•</span>
+            <StarDisplay>
+              {Array.from({ length: 3 }, (_, i) => (
+                <span key={i}>{i < (progress.stars || 0) ? '⭐' : '☆'}</span>
+              ))}
+            </StarDisplay>
+          </ProgressDisplay>
+          <ActivityTimer
+            timeMetrics={getCurrentTimeMetrics()}
+            onStart={startActivity}
+            showControls={false}
+            compact={false}
+            invisible={true}
+          />
+          {state.currentLetter && (
+            <TargetLetterDisplay
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              onClick={() => {
+                // 🔊 Tracking de interação com TTS na área principal
+                recordAdvancedInteraction({
+                  type: 'audio_interaction',
+                  subtype: 'target_audio_request',
+                  sensoryModality: 'auditory',
+                  context: {
+                    interactionType: 'click_to_hear',
+                    targetContent:
+                      state.gameMode === 'word' ? state.currentLetter : state.currentLetter?.word,
+                    auditoryLearning: 'direct_audio_feedback',
+                    userInitiated: true,
+                  },
+                })
+
+                if (state.gameMode === 'word') {
+                  speakLetter(state.currentLetter || 'A')
+                } else {
+                  speakWord(state.currentLetter?.word || '')
+                }
+              }}
+              role="button"
+              aria-label={state.gameMode === 'word' ? 'Ouvir letra' : 'Ouvir palavra'}
+            >
+              <div className="target-display">
+                {state.gameMode === 'word' ? state.currentLetter : state.currentLetter?.word || '?'}
+              </div>
+              <LetterInfo>
+                {state.gameMode === 'word'
+                  ? 'Clique para ouvir a letra'
+                  : 'Clique para ouvir a palavra'}
+              </LetterInfo>
+            </TargetLetterDisplay>
+          )}
+          {state.options.length > 0 && (
+            <OptionsGrid>
+              {state.options.map((option, index) => (
+                <LetterOption
+                  key={index}
+                  onClick={() => handleOptionSelect(option)}
+                  className={
+                    state.selectedOption === option
+                      ? option.isCorrect
+                        ? 'correct'
+                        : 'incorrect'
+                      : ''
+                  }
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  aria-label={
+                    state.gameMode === 'word'
+                      ? `Opção: ${option.word}`
+                      : `Opção: letra ${option.letter}`
+                  }
+                >
+                  {state.gameMode === 'word' ? (
+                    <>
+                      <OptionImage>{option.emoji || '📝'}</OptionImage>
+                      <OptionWord>{option.word}</OptionWord>
+                    </>
+                  ) : (
+                    <OptionLetter>{option.letter}</OptionLetter>
+                  )}
+                </LetterOption>
+              ))}
+            </OptionsGrid>
+          )}
+          <AnimatePresence>
+            {state.feedback && (
+              <FeedbackMessage
+                className={state.feedback.type}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {state.feedback.message}
+              </FeedbackMessage>
+            )}
+          </AnimatePresence>
+        </>
+      )}
     </GameContainer>
   )
+}
+
+LetterRecognition.propTypes = {
+  onBack: PropTypes.func.isRequired,
 }
 
 export default LetterRecognition

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react'
-import { playGeneratedSound, SOUNDS } from '../utils/audioGenerator'
+import { playGeneratedSound, SOUNDS } from '../utils/shared/audioGenerator'
 
 // Contexto de áudio compartilhado para evitar múltiplas instâncias
 let sharedAudioContext = null
@@ -81,7 +81,7 @@ const useSound = () => {
 
   const playSound = useCallback(async (name, volume = 0.5) => {
     await initializeAudio() // Garantir que o áudio está inicializado
-    
+
     const audio = audioRef.current.get(name)
     if (audio) {
       try {
@@ -104,32 +104,32 @@ const useSound = () => {
   }, [])
 
   const stopAllSounds = useCallback(() => {
-    audioRef.current.forEach(audio => {
+    audioRef.current.forEach((audio) => {
       audio.pause()
       audio.currentTime = 0
     })
-  }, [])  // Sons pré-configurados para feedback
+  }, []) // Sons pré-configurados para feedback
   const playSuccess = useCallback(async () => {
     try {
       const audioContext = await getAudioContext()
       if (!audioContext) return
-      
+
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime) // C5
       oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1) // E5
       oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2) // G5
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.5)
-      
+
       console.log('Som de sucesso reproduzido')
     } catch (error) {
       console.warn('Erro no áudio de sucesso:', error)
@@ -140,22 +140,22 @@ const useSound = () => {
     try {
       const audioContext = await getAudioContext()
       if (!audioContext) return
-      
+
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       oscillator.frequency.setValueAtTime(200, audioContext.currentTime)
       oscillator.type = 'sine'
-      
+
       gainNode.gain.setValueAtTime(0.2, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.3)
-      
+
       console.log('Som de erro reproduzido')
     } catch (error) {
       console.warn('Erro no áudio de erro:', error)
@@ -166,62 +166,63 @@ const useSound = () => {
     try {
       const audioContext = await getAudioContext()
       if (!audioContext) return
-      
+
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
       oscillator.type = 'sine'
-      
+
       gainNode.gain.setValueAtTime(0.1, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.1)
-      
+
       console.log('Som de clique reproduzido')
     } catch (error) {
       console.warn('Erro no áudio de clique:', error)
-    }  }, [])
+    }
+  }, [])
 
   // Tocar nota musical
   const playNote = useCallback(async (note = 'C', octave = 4) => {
     try {
       const audioContext = await getAudioContext()
       if (!audioContext) return
-      
+
       // Frequências das notas musicais
       const noteFrequencies = {
-        'C': 261.63,
-        'D': 293.66,
-        'E': 329.63,
-        'F': 349.23,
-        'G': 392.00,
-        'A': 440.00,
-        'B': 493.88
+        C: 261.63,
+        D: 293.66,
+        E: 329.63,
+        F: 349.23,
+        G: 392.0,
+        A: 440.0,
+        B: 493.88,
       }
-      
+
       const baseFreq = noteFrequencies[note.toUpperCase()] || noteFrequencies.C
       const frequency = baseFreq * Math.pow(2, octave - 4) // Ajustar para a oitava
-      
+
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
       oscillator.type = 'sine'
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.5)
-      
+
       console.log(`Nota ${note}${octave} reproduzida (${frequency}Hz)`)
     } catch (error) {
       console.warn(`Erro ao reproduzir nota ${note}:`, error)
@@ -229,17 +230,20 @@ const useSound = () => {
   }, [])
 
   // Tocar sequência de notas
-  const playSequence = useCallback(async (sequence, tempo = 600) => {
-    for (let i = 0; i < sequence.length; i++) {
-      setTimeout(() => {
-        if (typeof sequence[i] === 'string') {
-          playNote(sequence[i])
-        } else if (sequence[i].note) {
-          playNote(sequence[i].note, sequence[i].octave || 4)
-        }
-      }, i * tempo)
-    }
-  }, [playNote])
+  const playSequence = useCallback(
+    async (sequence, tempo = 600) => {
+      for (let i = 0; i < sequence.length; i++) {
+        setTimeout(() => {
+          if (typeof sequence[i] === 'string') {
+            playNote(sequence[i])
+          } else if (sequence[i].note) {
+            playNote(sequence[i].note, sequence[i].octave || 4)
+          }
+        }, i * tempo)
+      }
+    },
+    [playNote]
+  )
 
   return {
     preloadSound,
@@ -250,7 +254,7 @@ const useSound = () => {
     playError,
     playClick,
     playNote,
-    playSequence
+    playSequence,
   }
 }
 

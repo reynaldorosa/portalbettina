@@ -5,22 +5,45 @@ import { motion } from 'framer-motion';
 export const GameContainer = styled.div`
   background: rgba(255, 255, 255, 0.98);
   border-radius: var(--radius-large);
-  padding: var(--space-xl);
+  padding: var(--space-md);
   margin: 0;
   box-shadow: var(--shadow-large);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-lg);
-  max-width: 900px;
+  gap: var(--space-sm);
+  max-width: 98vw;
+  width: 100%;
   margin-left: auto;
   margin-right: auto;
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
+  height: 75vh;
+  max-height: 75vh;
+  overflow: hidden;
 
   @media (max-width: 768px) {
+    padding: var(--space-sm);
+    gap: var(--space-xs);
+    max-width: 98vw;
+    height: 85vh;
+    max-height: 85vh;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    max-width: 98vw;
+    padding: var(--space-md);
+    gap: var(--space-sm);
+    height: 70vh;
+    max-height: 70vh;
+  }
+
+  @media (min-width: 1366px) and (orientation: landscape) {
+    max-width: 96vw;
     padding: var(--space-lg);
     gap: var(--space-md);
+    height: 68vh;
+    max-height: 68vh;
   }
 `;
 

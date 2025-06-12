@@ -99,30 +99,91 @@ body {
   }
 }
 
-/* Classes de acessibilidade */
-.high-contrast {
-  --primary-blue: #0056b3;
-  --primary-green: #155724;
-  --primary-orange: #975a16;
-  --primary-purple: #5e0080;
-  --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.4);
-  color-scheme: light dark;
-  background: white !important;
-  color: black !important;
+/* Classes de acessibilidade aprimoradas */
+:root {
+  --background: #ffffff;
+  --background-secondary: #fafafa;
+  --background-hover: #f8f8f8;
+  --text-primary: #444;
+  --light-gray: #eee;
+  --medium-gray: #888;
+  --primary-blue: #6b48ff;
+  --primary-purple: #ff6b9a;
+  --primary-green: #10b981;
 }
 
-.reduced-motion * {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+/* Tema escuro */
+:root[data-theme="dark"] {
+  --background: #1a1a1a !important;
+  --background-secondary: #2d2d2d !important;
+  --background-hover: #3d3d3d !important;
+  --text-primary: #e0e0e0 !important;
+  --light-gray: #444 !important;
+  --medium-gray: #bbb !important;
+}
+
+html[data-theme="dark"] {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
+
+html[data-theme="dark"] body {
+  background: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
+
+/* Alto contraste */
+:root.high-contrast,
+html.high-contrast {
+  --background: #ffffff !important;
+  --background-secondary: #ffffff !important;
+  --background-hover: #e0e0e0 !important;
+  --text-primary: #000000 !important;
+  --light-gray: #000000 !important;
+  --medium-gray: #000000 !important;
+  --primary-blue: #0000ff !important;
+  --primary-purple: #800080 !important;
+  --primary-green: #008000 !important;
+}
+
+html.high-contrast {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+html.high-contrast body {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+html.high-contrast * {
+  border-color: #000000 !important;
+}
+
+/* Fonte para dislexia */
+:root.dyslexia-friendly,
+html.dyslexia-friendly {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+html.dyslexia-friendly * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+/* Reduzir animações */
+:root.reduced-motion,
+html.reduced-motion {
   scroll-behavior: auto !important;
 }
 
-.dyslexia-friendly {
-  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
-  letter-spacing: 0.1em;
-  line-height: 1.8;
+html.reduced-motion *,
+html.reduced-motion *:before,
+html.reduced-motion *:after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition: none !important;
+  animation: none !important;
 }
 
 [data-theme="dark"] {

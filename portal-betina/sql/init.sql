@@ -7,7 +7,8 @@ CREATE TABLE users (
     display_name VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    preferences JSONB DEFAULT '{}'
+    preferences JSONB DEFAULT '{}',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela de sessões de jogos

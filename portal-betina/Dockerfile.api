@@ -1,29 +1,68 @@
-# Dockerfile específico para API
-FROM node:18-alpine
+# Dockerfile otimizado para API com Node.js
+FROM node:18-alpine AS base
 
+# Instalar dependências do sistema necessárias para compilação
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    linux-headers \
+    netcat-openbsd \
+    dumb-init
+
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Instalar dependências necessárias
-RUN apk add --no-cache wget
+# Estágio de dependências da API
+FROM base AS api-dependencies
 
-# Copiar package.json
+# Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar dependências
-RUN npm ci --only=production
+# Instalar todas as dependências necessárias
+# Incluindo as dependências específicas da API
+RUN npm ci --include=dev && \
+    npm cache clean --force
 
-# Adicionar express e cors se não estiverem no package.json
-RUN npm install express cors pg
+# Verificar se as dependências críticas da API estão instaladas
+RUN npm list express compression helmet express-rate-limit || \
+    npm install express compression helmet express-rate-limit
 
-# Copiar serviços
-COPY src/services ./src/services
+# Estágio de produção da API
+FROM api-dependencies AS api-production
+
+# Copiar código-fonte completo
+COPY . .
+
+# Copiar arquivos de configuração específicos
+COPY .env* ./
+
+# Criar estrutura de diretórios necessária
+RUN mkdir -p /app/logs /app/temp && \
+    touch /app/logs/api.log
+
+# Criar usuário não-root para segurança
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+# Mudar para usuário não-root
+USER nodejs
+
+# Variáveis de ambiente para produção
+ENV NODE_ENV=production
+ENV API_PORT=3000
+ENV LOG_LEVEL=info
 
 # Expor porta da API
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1
+# Health check para monitoramento da API
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+
+# Usar dumb-init para manejo correto de sinais
+ENTRYPOINT ["dumb-init", "--"]
 
 # Comando para iniciar a API
 CMD ["node", "src/services/api-server.js"]

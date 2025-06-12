@@ -1,32 +1,49 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import { motion } from 'framer-motion'
-import Header from './components/navigation/Header'
-import Footer from './components/navigation/Footer'
-import ActivityMenu from './components/navigation/ActivityMenu'
-import DonationBanner from './components/navigation/DonationBanner'
-import ActivityWrapper from './components/common/ActivityWrapper'
-import DatabaseStatus from './components/common/DatabaseStatus'
-import MemoryGame from './components/activities/MemoryGame'
-import ColorMatch from './components/activities/ColorMatch'
-import ImageAssociation from './components/activities/ImageAssociation'
-import MusicalSequence from './components/activities/MusicalSequence'
-import LetterRecognition from './components/activities/LetterRecognition'
-import NumberCounting from './components/activities/NumberCounting'
-import CreativePainting from './components/activities/CreativePainting'
-import About from './components/pages/About'
-import ProgressReport from './components/pages/ProgressReport'
-import UserProfiles from './components/pages/UserProfiles'
-import PerformanceDashboard from './components/pages/PerformanceDashboard'
-import BackupExport from './components/pages/BackupExport'
-import AdminPanel from './components/pages/AdminPanel'
-import { useUser } from './contexts/UserContext'
-import { incrementGameUsage } from './utils/gameUsage'
+import Header from './components/navigation/Header.jsx'
+import Footer from './components/navigation/Footer.jsx'
+import ActivityMenu from './components/navigation/ActivityMenu.jsx'
+import DonationBanner from './components/navigation/DonationBanner.jsx'
+import ActivityWrapper from './components/common/ActivityWrapper.jsx'
+import DatabaseStatus from './components/common/DatabaseStatus.jsx'
+import TTSDebugPanel from './components/common/TTSDebugPanel.jsx'
+import MobileDataCollectionWrapper from './components/MobileDataCollectionWrapper.jsx'
+
+// Lazy loading para componentes pesados
+const MemoryGame = lazy(() => import('./components/activities/MemoryGame.jsx'))
+const ColorMatch = lazy(() => import('./components/activities/ColorMatch.jsx'))
+const ImageAssociation = lazy(() => import('./components/activities/ImageAssociation.jsx'))
+const MusicalSequence = lazy(() => import('./components/activities/MusicalSequence.jsx'))
+const LetterRecognition = lazy(() => import('./components/activities/LetterRecognition.jsx'))
+const NumberCounting = lazy(() => import('./components/activities/NumberCounting.jsx'))
+const CreativePaintingSimple = lazy(
+  () => import('./components/activities/CreativePaintingSimple.jsx')
+)
+const VisualPatterns = lazy(() => import('./components/activities/PadroesVisuais.jsx'))
+const EmotionalPuzzle = lazy(() => import('./components/activities/QuebraCabeca.jsx'))
+const About = lazy(() => import('./components/pages/About.jsx'))
+const ProgressReport = lazy(() => import('./components/pages/ProgressReport.jsx'))
+const UserProfiles = lazy(() => import('./components/pages/UserProfiles.jsx'))
+const PerformanceDashboard = lazy(() => import('./components/dashboard/PerformanceDashboard.jsx'))
+const BackupExport = lazy(() => import('./components/pages/BackupExport.jsx'))
+const AdminPanel = lazy(() => import('./components/pages/AdminPanel.jsx'))
+const IntegratedSystemDashboard = lazy(
+  () => import('./components/dashboard/IntegratedSystemDashboard.jsx')
+)
+
+import { useUser } from './contexts/UserContext.jsx'
+import { PremiumAuthProvider } from './contexts/PremiumAuthContext.jsx'
+import { incrementGameUsage } from './utils/game/gameUsage.js'
+import { initializeSystemOrchestrator } from './utils/core/SystemOrchestrator.js'
+import databaseService from '../parametros_naosaousados/databaseService.js'
 
 const AppContainer = styled.div`
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   position: relative;
+  display: flex;
+  flex-direction: column;
 
   &::before {
     content: '';
@@ -46,11 +63,12 @@ const AppContainer = styled.div`
 
 const MainContent = styled.main`
   padding: var(--space-lg);
-  padding-bottom: 120px; /* Espaço para o footer fixo */
+  padding-bottom: 120px;
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
+  flex: 1;
 
   @media (max-width: 768px) {
     padding: var(--space-md);
@@ -77,7 +95,12 @@ const WelcomeSection = styled(motion.section)`
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple), var(--primary-pink));
+    background: linear-gradient(
+      90deg,
+      var(--primary-blue),
+      var(--primary-purple),
+      var(--primary-pink)
+    );
   }
 `
 
@@ -95,155 +118,241 @@ const WelcomeTitle = styled.h1`
   }
 `
 
+const activityComponents = {
+  'memory-game': { component: MemoryGame, title: 'Jogo da Memória', emoji: '🧠' },
+  'color-match': { component: ColorMatch, title: 'Combinar Cores', emoji: '🌈' },
+  'image-association': { component: ImageAssociation, title: 'Associação de Imagens', emoji: '🖼️' },
+  'musical-sequence': { component: MusicalSequence, title: 'Sequência Musical', emoji: '🎵' },
+  'letter-recognition': {
+    component: LetterRecognition,
+    title: 'Reconhecimento de Letras',
+    emoji: '📚',
+  },
+  'number-counting': { component: NumberCounting, title: 'Números e Contagem', emoji: '🔢' },
+  'creative-painting': {
+    component: CreativePaintingSimple,
+    title: 'Pintura Criativa',
+    emoji: '🎨',
+  },
+  'visual-patterns': { component: VisualPatterns, title: 'Padrões Visuais', emoji: '🔷' },
+  'emotional-puzzle': { component: EmotionalPuzzle, title: 'Quebra-Cabeça Emocional', emoji: '😊' },
+  about: { component: About, title: 'Sobre o Portal', emoji: '💡' },
+  'progress-report': { component: ProgressReport, title: 'Relatório de Progresso', emoji: '📊' },
+  'user-profiles': { component: UserProfiles, title: 'Perfis de Usuário', emoji: '👤' },
+  'performance-dashboard': {
+    component: PerformanceDashboard,
+    title: 'Painel de Desempenho',
+    emoji: '📈',
+  },
+  'integrated-system-dashboard': {
+    component: IntegratedSystemDashboard,
+    title: 'Dashboard Integrado',
+    emoji: '🎯',
+  },
+  'backup-export': { component: BackupExport, title: 'Exportação de Backup', emoji: '💾' },
+  'admin-panel': { component: AdminPanel, title: 'Painel Administrativo', emoji: '🔐' },
+}
+
 function App() {
   const [currentActivity, setCurrentActivity] = useState('home')
-  const { isDbConnected, loading } = useUser()
-  
-  const handleActivitySelect = (activityId) => {
-    // Lista de jogos que devem ter uso contabilizado
-    const gameActivities = [
-      'memory-game', 
-      'color-match', 
-      'image-association', 
-      'musical-sequence', 
-      'letter-recognition', 
-      'number-counting',
-      'creative-painting'
-    ];
-    
-    // Se for um jogo, incrementa contador de uso
-    if (gameActivities.includes(activityId)) {
-      incrementGameUsage(activityId);
-    }
-    
-    setCurrentActivity(activityId)
-  }
-  const handleBackToMenu = () => {
-    setCurrentActivity('home')
-  }
-  
-  const getActivityTitle = () => {
-    const titles = {
-      'memory-game': '🧠 Jogo da Memória',
-      'color-match': '🌈 Combinar Cores',
-      'image-association': '🧩 Associação de Imagens',
-      'musical-sequence': '🎵 Sequência Musical',
-      'letter-recognition': '🔤 Reconhecimento de Letras',
-      'number-counting': '🔢 Números e Contagem',
-      'creative-painting': '🎨 Pintura Criativa',
-      'about': '💡 Sobre o Portal',
-      'progress-report': '📊 Relatório de Progresso',
-      'admin-panel': '🔐 Painel Administrativo'
-    }
-    return titles[currentActivity] || null
-  }
-  
-  const renderActivity = () => {
-    switch (currentActivity) {
-      case 'memory-game':
-        return (
-          <ActivityWrapper
-            title="Jogo da Memória"
-            emoji="🧠"
-          >
-            <MemoryGame onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'color-match':
-        return (
-          <ActivityWrapper
-            title="Combinar Cores"
-            emoji="🌈"
-          >
-            <ColorMatch onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'image-association':
-        return (
-          <ActivityWrapper
-            title="Associação de Imagens"
-            emoji="🖼️"
-          >
-            <ImageAssociation onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'musical-sequence':
-        return (
-          <ActivityWrapper
-            title="Sequência Musical"
-            emoji="🎵"
-          >
-            <MusicalSequence onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'letter-recognition':
-        return (
-          <ActivityWrapper
-            title="Reconhecimento de Letras"
-            emoji="📚"
-          >
-            <LetterRecognition onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'number-counting':
-        return (
-          <ActivityWrapper
-            title="Números e Contagem"
-            emoji="🔢"
-          >
-            <NumberCounting onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'creative-painting':
-        return (
-          <ActivityWrapper
-            title="Pintura Criativa"
-            emoji="🎨"
-          >
-            <CreativePainting onBack={handleBackToMenu} />
-          </ActivityWrapper>
-        )
-      case 'about':
-        return <About />
-      case 'progress-report':
-        return <ProgressReport onBack={handleBackToMenu} />
-      case 'user-profiles':
-        return <UserProfiles onBack={handleBackToMenu} />
-      case 'performance-dashboard':
-        return <PerformanceDashboard />
-      case 'backup-export':
-        return <BackupExport />
-      case 'admin-panel':
-        return <AdminPanel />
-      case 'home':
-      default:
-        return (
-          <>            <WelcomeSection
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <DonationBanner />
-            </WelcomeSection>
+  const { isDbConnected, loading, user } = useUser()
+  const [mobileDataSession, setMobileDataSession] = useState(null)
+  const [orchestratorInitialized, setOrchestratorInitialized] = useState(false)
+  const [dataCollectionStats, setDataCollectionStats] = useState({
+    touchEvents: 0,
+    sensorReadings: 0,
+    neurodivergenceIndicators: 0,
+  })
 
-            <ActivityMenu onActivitySelect={handleActivitySelect} />
-          </>
-        )
+  // Inicializar o Sistema Orquestrador
+  useEffect(() => {
+    const initOrchestrator = async () => {
+      try {
+        if (isDbConnected && !orchestratorInitialized) {
+          console.log('🎯 Inicializando Sistema Orquestrador...')
+          const orchestrator = initializeSystemOrchestrator(databaseService, {
+            enableRealTimeOrchestration: true,
+            enableCrossSystemLearning: true,
+            enablePredictiveCoordination: true,
+            enableTherapeuticIntegration: true,
+            enableAIAugmentedAnalysis: true,
+          })
+          setOrchestratorInitialized(true)
+          console.log('✅ Sistema Orquestrador inicializado com sucesso')
+        }
+      } catch (error) {
+        console.error('❌ Erro ao inicializar Sistema Orquestrador:', error)
+      }
     }
-  }
+
+    initOrchestrator()
+  }, [isDbConnected, orchestratorInitialized])
+
+  const isMobileDevice = useCallback(() => {
+    const userAgent = navigator.userAgent.toLowerCase()
+    const screenWidth = window.screen.width
+    const minDimension = Math.min(screenWidth, window.screen.height)
+    return /mobile|tablet|phone|android|iphone|ipad/.test(userAgent) || minDimension <= 1024
+  }, [])
+
+  const handleDataCollected = useCallback((data) => {
+    setDataCollectionStats(data.dataStats)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 Dados coletados:', data)
+    }
+  }, [])
+
+  const handleSessionComplete = useCallback((sessionData) => {
+    console.log('🏁 Sessão de coleta concluída:', sessionData)
+    setMobileDataSession(null)
+  }, [])
+
+  const gameActivities = useMemo(
+    () => [
+      'memory-game',
+      'color-match',
+      'image-association',
+      'musical-sequence',
+      'letter-recognition',
+      'number-counting',
+      'creative-painting',
+      'visual-patterns',
+      'emotional-puzzle',
+    ],
+    []
+  )
+
+  const handleActivitySelect = useCallback(
+    (activityId) => {
+      if (gameActivities.includes(activityId)) {
+        incrementGameUsage(activityId)
+      }
+      setCurrentActivity(activityId)
+    },
+    [gameActivities]
+  )
+
+  const handleBackToMenu = useCallback(() => {
+    setCurrentActivity('home')
+  }, [])
+  // Componente de fallback para lazy loading
+  const LoadingFallback = useMemo(
+    () => (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 'var(--radius-large)',
+          margin: 'var(--space-lg) 0',
+        }}
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          style={{ fontSize: '2rem' }}
+        >
+          🧠
+        </motion.div>
+        <span style={{ marginLeft: '1rem', fontSize: '1.1rem' }}>Carregando atividade...</span>
+      </div>
+    ),
+    []
+  )
+
+  const renderActivity = useCallback(() => {
+    if (currentActivity === 'home') {
+      return (
+        <>
+          <WelcomeSection
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <DonationBanner />
+          </WelcomeSection>
+          <ActivityMenu onActivitySelect={handleActivitySelect} />
+        </>
+      )
+    }
+
+    const Activity = activityComponents[currentActivity]?.component
+    const title = activityComponents[currentActivity]?.title
+    const emoji = activityComponents[currentActivity]?.emoji
+
+    if (!Activity) return null
+
+    return (
+      <ActivityWrapper title={title} emoji={emoji}>
+        <Suspense fallback={LoadingFallback}>
+          <Activity onBack={handleBackToMenu} />
+        </Suspense>
+      </ActivityWrapper>
+    )
+  }, [currentActivity, handleActivitySelect, handleBackToMenu, LoadingFallback])
+
+  const mobileSessionConfig = useMemo(
+    () => ({
+      enableLocation: false,
+      collectTouchData: true,
+      collectSensorData: true,
+      syncInterval: 30000,
+      touchSampleRate: 60,
+      sensorSampleRate: 30,
+    }),
+    []
+  )
+  // Memoizar configurações estáticas
+  const shouldEnableMobileCollection = useMemo(
+    () => isMobileDevice() && user?.id,
+    [isMobileDevice, user?.id]
+  )
+
+  const showDebugPanel = useMemo(() => process.env.NODE_ENV === 'development', [])
+  // Memoizar título do header para evitar re-renderizações
+  const headerTitle = useMemo(
+    () =>
+      activityComponents[currentActivity]?.title ||
+      (shouldEnableMobileCollection ? 'Portal Betina - Mobile' : 'Portal Betina'),
+    [currentActivity, shouldEnableMobileCollection]
+  )
+
   return (
-    <AppContainer>
-      <Header 
-        title={getActivityTitle() || "Portal Betina"}
-        onLogoClick={handleBackToMenu}
-      />
-        <MainContent>
-        {renderActivity()}
-      </MainContent>      <Footer
-        currentActivity={currentActivity}
-        onActivityChange={handleActivitySelect}
-      />
-    </AppContainer>
+    <PremiumAuthProvider>
+      <AppContainer>
+        {shouldEnableMobileCollection ? (
+          <MobileDataCollectionWrapper
+            userId={user.id}
+            activityId={currentActivity}
+            sessionConfig={mobileSessionConfig}
+            onDataCollected={handleDataCollected}
+            onSessionComplete={handleSessionComplete}
+          >
+            {' '}
+            <Header title={headerTitle} onLogoClick={handleBackToMenu} />
+            <MainContent>
+              {renderActivity()}
+              {showDebugPanel && <TTSDebugPanel />}
+              <DatabaseStatus isConnected={isDbConnected} loading={loading} />
+            </MainContent>
+            <Footer currentActivity={currentActivity} onActivityChange={handleActivitySelect} />
+          </MobileDataCollectionWrapper>
+        ) : (
+          <>
+            {' '}
+            <Header title={headerTitle} onLogoClick={handleBackToMenu} />
+            <MainContent>
+              {renderActivity()}
+              {showDebugPanel && <TTSDebugPanel />}
+              <DatabaseStatus isConnected={isDbConnected} loading={loading} />
+            </MainContent>
+            <Footer currentActivity={currentActivity} onActivityChange={handleActivitySelect} />
+          </>
+        )}
+      </AppContainer>
+    </PremiumAuthProvider>
   )
 }
 

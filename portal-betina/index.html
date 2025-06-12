@@ -3,29 +3,80 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Portal gratuito de atividades neuropedagógicas para crianças com autismo, TDAH e outras necessidades cognitivas">
-    <meta name="keywords" content="autismo, TDAH, neuropedagogia, atividades terapêuticas, crianças, educação especial">
-    <meta name="author" content="Portal Betina">
-      <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#4A90E2">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Portal Betina">
-      <!-- Icons -->
+    <meta
+      name="description"
+      content="Portal gratuito de atividades neuropedagógicas para crianças com autismo, TDAH e outras necessidades cognitivas"
+    />
+    <meta
+      name="keywords"
+      content="autismo, TDAH, neuropedagogia, atividades terapêuticas, crianças, educação especial"
+    />
+    <meta name="author" content="Portal Betina" />
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4A90E2" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portal Betina" />
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/manifest.json">
-    
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
     <title>Portal Betina - Atividades Neuropedagógicas</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div
+        style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          color: white;
+          font-family: 'Fredoka', sans-serif;
+          z-index: 9999;
+        "
+      >
+        <div
+          style="
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+          "
+        ></div>
+        <h2 style="margin: 0; font-size: 24px; text-align: center">🧠 Portal Betina</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.8">Carregando sistema de métricas...</p>
+      </div>
+      <style>
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      </style>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

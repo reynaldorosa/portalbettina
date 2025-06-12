@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import { motion, AnimatePresence } from 'framer-motion'
 import useSound from '../../hooks/useSound'
 import useProgress from '../../hooks/useProgress'
+import useAdvancedActivity from '../../hooks/useAdvancedActivity'
 import useTTS from '../../hooks/useTTS'
 import ActivityTimer from '../common/ActivityTimer'
 import { announceToScreenReader, vibrateSuccess, vibrateError, prefersHighContrast, prefersReducedMotion } from '../../utils/accessibility'
@@ -363,8 +364,20 @@ function ColorMatch({ onBack }) {
     isActivityPaused,
     getStats,
     getEncouragementMessage,
-    saveProgress
-  } = useProgress('color-match')
+    saveProgress  } = useProgress('color-match')
+
+  // Hook avançado de atividade multissensorial
+  const {
+    recordAdvancedInteraction,
+    recordBehavioralIndicator,
+    startAdvancedSession,
+    stopAdvancedSession,
+    sessionInsights
+  } = useAdvancedActivity('color-match', {
+    enableSensorTracking: true,
+    enableGeoLocation: false,
+    enableNeurodivergenceAnalysis: true
+  })
   
   // Progresso local para métricas durante o jogo
   const [localProgress, setLocalProgress] = useState({
@@ -372,20 +385,36 @@ function ColorMatch({ onBack }) {
     accuracy: 100,
     stars: 0
   })
-  
-  // Efeito para garantir que ActivityTimer está sincronizado
+    // Efeito para garantir que ActivityTimer está sincronizado
   useEffect(() => {
     // Limpar timers na desmontagem
     return () => {
       finishActivity()
+      // 🔥 FINALIZAR SESSÃO MULTISSENSORIAL ao sair
+      const handleExit = async () => {
+        try {
+          const finalReport = await stopAdvancedSession()
+          if (finalReport) {
+            console.log('🏁 Sessão ColorMatch finalizada:', finalReport)
+          }
+        } catch (error) {
+          console.error('Erro ao finalizar sessão avançada:', error)
+        }
+      }
+      handleExit()
     }
   }, [])
-  
-  // Iniciar novo jogo
+    // Iniciar novo jogo
   const startNewGame = async () => {
     try {
       // Iniciar cronometragem
       await startActivity()
+      
+      // Iniciar sessão avançada multissensorial
+      const advancedStarted = await startAdvancedSession()
+      if (advancedStarted) {
+        console.log('🚀 Sessão avançada ColorMatch iniciada')
+      }
       
       // Configurar jogo
       setGameStarted(true)
@@ -409,17 +438,33 @@ function ColorMatch({ onBack }) {
     } catch (error) {
       console.error('Erro ao iniciar jogo:', error)
     }
-  }
-    // Gerar nova rodada
+  }    // Gerar nova rodada
   const generateNewRound = () => {
     // Reset completo do estado anterior
     setSelectedItems([])
     setFeedback(null)
     
+    // Marcar tempo de início da rodada para tracking
+    window.colorMatchStartTime = Date.now()
+    
     // Escolher uma cor aleatória
     const availableColors = Object.keys(colors)
     const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)]
     setCurrentColor(randomColor)
+    
+    // 🔥 TRACKING MULTISSENSORIAL - Nova rodada iniciada
+    recordAdvancedInteraction({
+      type: 'round_start',
+      subtype: 'color_challenge_presented',
+      sensoryModality: 'visual',
+      context: {
+        targetColor: randomColor,
+        colorName: colorNames[randomColor],
+        difficulty,
+        roundNumber: roundsCompleted + 1,
+        challengeType: 'color_discrimination'
+      }
+    })
     
     // Filtrar itens da cor escolhida
     const correctItemsForColor = items.filter(item => item.color === randomColor)
@@ -517,7 +562,7 @@ function ColorMatch({ onBack }) {
       }, 3000) // 3 segundos para a criança ver o sucesso
     }
   }
-    // Lidar com clique em item
+  // Lidar com clique em item
   const handleItemClick = (item) => {
     if (selectedItems.some(selected => selected.id === item.id)) {
       return // Item já selecionado
@@ -525,6 +570,26 @@ function ColorMatch({ onBack }) {
     
     playClick()
     incrementAttempts()
+    
+    // 🔥 TRACKING MULTISSENSORIAL - Registrar interação de seleção
+    recordAdvancedInteraction({
+      type: 'item_selection',
+      subtype: 'color_discrimination',
+      sensoryModality: 'visual',
+      isCorrect: item.color === currentColor,
+      responseTime: Date.now() - (window.colorMatchStartTime || Date.now()),
+      context: {
+        targetColor: currentColor,
+        selectedItem: {
+          name: item.name,
+          color: item.color,
+          category: item.category
+        },
+        difficulty,
+        roundNumber: roundsCompleted + 1,
+        previousAttempts: selectedItems.length
+      }
+    })
     
     // Adicionar item à seleção
     const newSelectedItems = [...selectedItems, item]
@@ -536,6 +601,18 @@ function ColorMatch({ onBack }) {
       vibrateSuccess()
       announceToScreenReader(`Correto! ${item.name} é da cor ${colorNames[currentColor].toLowerCase()}.`)
       
+      // 🔥 TRACKING MULTISSENSORIAL - Sucesso na discriminação de cores
+      recordAdvancedInteraction({
+        type: 'success_response',
+        subtype: 'color_match_correct',
+        sensoryModality: 'visual-motor',
+        context: {
+          colorAccuracy: 'high',
+          visualProcessing: 'effective',
+          reactionPattern: 'accurate'
+        }
+      })
+      
       // Verificar se completou o desafio (usar newSelectedItems atualizado)
       checkRoundComplete(newSelectedItems)
     } else {
@@ -543,6 +620,18 @@ function ColorMatch({ onBack }) {
       recordError()
       playError()
       vibrateError()
+      
+      // 🔥 TRACKING MULTISSENSORIAL - Erro na discriminação de cores
+      recordAdvancedInteraction({
+        type: 'error_response',
+        subtype: 'color_discrimination_error',
+        sensoryModality: 'visual',
+        context: {
+          confusionType: `${item.color}_vs_${currentColor}`,
+          errorPattern: 'color_mismatch',
+          supportNeeded: 'visual_discrimination'
+        }
+      })
       
       const errorMessages = [
         `🤔 Ops! ${item.name} não é da cor ${colorNames[currentColor].toLowerCase()}.`,
@@ -604,7 +693,7 @@ function ColorMatch({ onBack }) {
             <StatValue>{progress.score}</StatValue>
             <StatLabel>Pontos</StatLabel>
           </StatItem>          <StatItem>
-            <StatValue>{currentRound}</StatValue>
+            <StatValue>{roundsCompleted + 1}</StatValue>
             <StatLabel>Nível</StatLabel>
           </StatItem>
           <StatItem>

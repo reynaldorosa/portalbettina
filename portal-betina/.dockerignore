@@ -1,15 +1,13 @@
-# Dependências
-node_modules
+# Dependências (exceto para builds específicos)
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build outputs
+# Build outputs temporários
 dist
 build
 
-# Environment files
-.env
+# Environment files (permitir .env.example para referência)
 .env.local
 .env.development.local
 .env.test.local
@@ -19,6 +17,35 @@ build
 .git
 .gitignore
 .github
+
+# Documentação e arquivos desnecessários para build
+documentação
+arquivos_bat
+README.md
+LICENSE
+
+# SSL temporários
+ssl/temp
+
+# Logs e cache
+logs
+*.log
+.npm
+.eslintcache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+.nyc_output
 
 # Docker
 Dockerfile

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { motion } from 'framer-motion'
-import { getTopGamesFromActivities } from '../../utils/gameUsage'
+import { getTopGamesFromActivities } from '../../utils/game/gameUsage'
 
 const MenuContainer = styled.section`
   margin: var(--space-xl) 0;
@@ -10,7 +10,7 @@ const MenuContainer = styled.section`
   flex-direction: column;
   align-items: center;
   padding: 0 var(--space-md);
-  
+
   @media (max-width: 768px) {
     padding: 0 var(--space-sm);
   }
@@ -204,7 +204,11 @@ const ActivityDescription = styled.p`
 `
 
 const ActivityBadge = styled.span`
-  background: linear-gradient(135deg, ${props => props.color || 'var(--primary-blue)'}, ${props => props.color ? `${props.color}dd` : 'var(--primary-blue)dd'});
+  background: linear-gradient(
+    135deg,
+    ${(props) => props.color || 'var(--primary-blue)'},
+    ${(props) => (props.color ? `${props.color}dd` : 'var(--primary-blue)dd')}
+  );
   color: white;
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-large);
@@ -229,7 +233,7 @@ const activities = [
     description: 'Aprenda o alfabeto de forma divertida e interativa',
     icon: '🔤',
     color: 'var(--primary-blue)',
-    badge: 'Letras'
+    badge: 'Letras',
   },
   {
     id: 'musical-sequence',
@@ -237,7 +241,7 @@ const activities = [
     description: 'Repita sequências sonoras e desenvolva a memória auditiva',
     icon: '🎧',
     color: 'var(--primary-purple)',
-    badge: 'Sons'
+    badge: 'Sons',
   },
   {
     id: 'creative-painting',
@@ -245,7 +249,23 @@ const activities = [
     description: 'Pinte seguindo números e cores para criar belas obras de arte',
     icon: '🎨',
     color: 'var(--primary-pink)',
-    badge: 'Arte'
+    badge: 'Arte',
+  },
+  {
+    id: 'visual-patterns',
+    title: 'Padrões Visuais',
+    description: 'Complete sequências de formas e cores para treinar a lógica',
+    icon: '🔷',
+    color: 'var(--primary-blue)',
+    badge: 'Padrões',
+  },
+  {
+    id: 'emotional-puzzle',
+    title: 'Quebra-Cabeça Emocional',
+    description: 'Monte quebra-cabeças temáticos sobre emoções e sentimentos',
+    icon: '😊',
+    color: 'var(--primary-purple)',
+    badge: 'Emoções',
   },
   {
     id: 'memory-game',
@@ -253,7 +273,7 @@ const activities = [
     description: 'Encontre os pares iguais e exercite a memória de forma divertida',
     icon: '🃏',
     color: 'var(--primary-green)',
-    badge: 'Memória'
+    badge: 'Memória',
   },
   {
     id: 'image-association',
@@ -261,7 +281,7 @@ const activities = [
     description: 'Combine imagens relacionadas e desenvolva conexões lógicas',
     icon: '🧩',
     color: 'var(--primary-orange)',
-    badge: 'Lógica'
+    badge: 'Lógica',
   },
   {
     id: 'number-counting',
@@ -269,18 +289,26 @@ const activities = [
     description: 'Aprenda números de 1 a 10 com atividades interativas',
     icon: '🔢',
     color: 'var(--primary-cyan)',
-    badge: 'Números'
-  }
+    badge: 'Números',
+  },
 ]
 
 const tools = [
+  {
+    id: 'integrated-system-dashboard',
+    title: 'Dashboard Inteligente',
+    description: 'Monitor central com IA, métricas avançadas e análise terapêutica',
+    icon: '🤖',
+    color: 'var(--primary-blue)',
+    badge: 'IA',
+  },
   {
     id: 'user-profiles',
     title: 'Perfis de Usuário',
     description: 'Gerencie diferentes perfis para toda a família',
     icon: '👤',
     color: 'var(--primary-purple)',
-    badge: 'Perfis'
+    badge: 'Perfis',
   },
   {
     id: 'performance-dashboard',
@@ -288,7 +316,7 @@ const tools = [
     description: 'Visualize estatísticas detalhadas e gráficos de progresso',
     icon: '📊',
     color: 'var(--primary-green)',
-    badge: 'Análise'
+    badge: 'Análise',
   },
   {
     id: 'backup-export',
@@ -296,30 +324,30 @@ const tools = [
     description: 'Salve seus dados ou transfira para outro dispositivo',
     icon: '💾',
     color: 'var(--primary-orange)',
-    badge: 'Dados'
-  }
+    badge: 'Dados',
+  },
 ]
 
 function ActivityMenu({ onActivitySelect }) {
-  const [topActivities, setTopActivities] = useState(activities);
+  const [topActivities, setTopActivities] = useState(activities)
   const [stats, setStats] = useState({
     totalGames: activities.length,
     totalTools: tools.length,
-    totalActivities: activities.length + tools.length
-  });
+    totalActivities: activities.length + tools.length,
+  })
 
   useEffect(() => {
     // Calcula os jogos mais utilizados baseado no array de atividades atual
-    const topGames = getTopGamesFromActivities(activities);
-    setTopActivities(topGames);
+    const topGames = getTopGamesFromActivities(activities)
+    setTopActivities(topGames)
 
     // Atualiza estatísticas
     setStats({
       totalGames: activities.length,
       totalTools: tools.length,
-      totalActivities: activities.length + tools.length
-    });
-  }, []);
+      totalActivities: activities.length + tools.length,
+    })
+  }, [])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -327,9 +355,9 @@ function ActivityMenu({ onActivitySelect }) {
       opacity: 1,
       transition: {
         staggerChildren: 0.08,
-        delayChildren: 0.1
-      }
-    }
+        delayChildren: 0.1,
+      },
+    },
   }
 
   const cardVariants = {
@@ -339,11 +367,11 @@ function ActivityMenu({ onActivitySelect }) {
       y: 0,
       scale: 1,
       transition: {
-        type: "spring",
+        type: 'spring',
         stiffness: 100,
-        damping: 15
-      }
-    }
+        damping: 15,
+      },
+    },
   }
 
   const statsVariants = {
@@ -353,15 +381,13 @@ function ActivityMenu({ onActivitySelect }) {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: "easeOut"
-      }
-    }
+        ease: 'easeOut',
+      },
+    },
   }
 
   return (
     <MenuContainer>
-
-
       <MenuTitle>🎯 Atividades Mais Populares</MenuTitle>
 
       <ActivitiesGrid
@@ -376,7 +402,7 @@ function ActivityMenu({ onActivitySelect }) {
             variants={cardVariants}
             whileHover={{
               scale: 1.02,
-              y: -8
+              y: -8,
             }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onActivitySelect(activity.id)}
@@ -396,8 +422,10 @@ function ActivityMenu({ onActivitySelect }) {
           </ActivityCard>
         ))}
       </ActivitiesGrid>
-      
-      <MenuTitle style={{ marginTop: 'var(--space-xxl)' }}>⚙️ Ferramentas e Configurações</MenuTitle>
+
+      <MenuTitle style={{ marginTop: 'var(--space-xxl)' }}>
+        ⚙️ Ferramentas e Configurações
+      </MenuTitle>
 
       <ActivitiesGrid
         as={motion.div}
@@ -411,7 +439,7 @@ function ActivityMenu({ onActivitySelect }) {
             variants={cardVariants}
             whileHover={{
               scale: 1.02,
-              y: -8
+              y: -8,
             }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onActivitySelect(tool.id)}
@@ -420,9 +448,7 @@ function ActivityMenu({ onActivitySelect }) {
             <ActivityIcon>{tool.icon}</ActivityIcon>
             <ActivityTitle>{tool.title}</ActivityTitle>
             <ActivityDescription>{tool.description}</ActivityDescription>
-            <ActivityBadge color={tool.color}>
-              {tool.badge}
-            </ActivityBadge>
+            <ActivityBadge color={tool.color}>{tool.badge}</ActivityBadge>
           </ActivityCard>
         ))}
       </ActivitiesGrid>

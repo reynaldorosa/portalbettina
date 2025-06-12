@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import { motion } from 'framer-motion'
-import { generateProgressReport, generateSuggestions } from '../../utils/progressReports'
+import { generateProgressReport, generateSuggestions } from '../../utils/shared/progressReports'
 
 const ProgressContainer = styled.div`
   background: rgba(255, 255, 255, 0.95);
@@ -35,7 +35,7 @@ const ProgressCard = styled.div`
   border-radius: var(--radius-medium);
   padding: var(--space-lg);
   box-shadow: var(--shadow-light);
-  border-left: 4px solid ${props => props.color || 'var(--primary-blue)'};
+  border-left: 4px solid ${(props) => props.color || 'var(--primary-blue)'};
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -43,7 +43,7 @@ const ProgressCard = styled.div`
 
 const CardTitle = styled.h3`
   font-size: var(--font-size-lg);
-  color: ${props => props.color || 'var(--primary-blue)'};
+  color: ${(props) => props.color || 'var(--primary-blue)'};
   margin: 0;
   display: flex;
   align-items: center;
@@ -56,7 +56,7 @@ const StatRow = styled.div`
   border-bottom: 1px dashed var(--light-gray);
   padding-bottom: var(--space-xs);
   margin-bottom: var(--space-xs);
-  
+
   &:last-child {
     border-bottom: none;
     margin-bottom: 0;
@@ -81,27 +81,38 @@ const SuggestionsList = styled.ul`
 `
 
 const SuggestionItem = styled.li`
-  background: ${props => {
+  background: ${(props) => {
     switch (props.type) {
-      case 'new-game': return 'var(--primary-blue-light)';
-      case 'practice-needed': return 'var(--primary-orange-light)';
-      case 'improving': return 'var(--success-light)';
-      case 'focus-area': return 'var(--primary-purple-light)';
-      default: return 'var(--light-gray)';
+      case 'new-game':
+        return 'var(--primary-blue-light)'
+      case 'practice-needed':
+        return 'var(--primary-orange-light)'
+      case 'improving':
+        return 'var(--success-light)'
+      case 'focus-area':
+        return 'var(--primary-purple-light)'
+      default:
+        return 'var(--light-gray)'
     }
   }};
   padding: var(--space-md);
   margin-bottom: var(--space-md);
   border-radius: var(--radius-medium);
-  border-left: 4px solid ${props => {
-    switch (props.type) {
-      case 'new-game': return 'var(--primary-blue)';
-      case 'practice-needed': return 'var(--primary-orange)';
-      case 'improving': return 'var(--primary-green)';
-      case 'focus-area': return 'var(--primary-purple)';
-      default: return 'var(--medium-gray)';
-    }
-  }};
+  border-left: 4px solid
+    ${(props) => {
+      switch (props.type) {
+        case 'new-game':
+          return 'var(--primary-blue)'
+        case 'practice-needed':
+          return 'var(--primary-orange)'
+        case 'improving':
+          return 'var(--primary-green)'
+        case 'focus-area':
+          return 'var(--primary-purple)'
+        default:
+          return 'var(--medium-gray)'
+      }
+    }};
   display: flex;
   align-items: center;
   gap: var(--space-md);
@@ -143,7 +154,7 @@ const BackButton = styled(motion.button)`
   gap: var(--space-sm);
   align-self: flex-start;
   margin-bottom: var(--space-lg);
-  
+
   &:hover {
     background: var(--primary-purple);
   }
@@ -162,7 +173,7 @@ const ExportButton = styled(motion.button)`
   align-items: center;
   gap: var(--space-sm);
   margin-top: var(--space-md);
-  
+
   &:hover {
     background: var(--success);
   }
@@ -175,7 +186,7 @@ const gameIcons = {
   'image-association': '🖼️',
   'letter-recognition': '📚',
   'number-counting': '🔢',
-  'musical-sequence': '🎵'
+  'musical-sequence': '🎵',
 }
 
 // Mapeamento de cores para jogos
@@ -185,52 +196,52 @@ const gameColors = {
   'image-association': 'var(--primary-orange)',
   'letter-recognition': 'var(--primary-pink)',
   'number-counting': 'var(--primary-cyan)',
-  'musical-sequence': 'var(--primary-purple)'
+  'musical-sequence': 'var(--primary-purple)',
 }
 
 // Ícones para sugestões
 const suggestionIcons = {
   'new-game': '🆕',
   'practice-needed': '🔍',
-  'improving': '📈',
+  improving: '📈',
   'focus-area': '🎯',
-  'general': '💡'
+  general: '💡',
 }
 
 function ProgressReport({ onBack }) {
   const [report, setReport] = useState(null)
   const [suggestions, setSuggestions] = useState([])
-  
+
   useEffect(() => {
     // Gerar relatório de progresso
     const progressReport = generateProgressReport()
     setReport(progressReport)
-    
+
     // Gerar sugestões
     const progressSuggestions = generateSuggestions(progressReport)
     setSuggestions(progressSuggestions)
   }, [])
-  
   // Manipular exportação de dados
   const handleExport = () => {
     try {
-      const { exportProgressData } = require('../../utils/progressReports')
+      // Importando do local correto em shared/
+      const { exportProgressData } = require('../../utils/shared/progressReports')
       const jsonData = exportProgressData()
-      
+
       if (!jsonData) {
         alert('Não foi possível exportar os dados')
         return
       }
-      
+
       // Criar blob e link para download
       const blob = new Blob([jsonData], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
-      
+
       const a = document.createElement('a')
       a.href = url
       a.download = `progresso-betina-${new Date().toISOString().slice(0, 10)}.json`
       a.click()
-      
+
       // Limpar URL
       setTimeout(() => URL.revokeObjectURL(url), 100)
     } catch (error) {
@@ -238,10 +249,10 @@ function ProgressReport({ onBack }) {
       alert('Ocorreu um erro ao exportar os dados')
     }
   }
-  
+
   // Verificar se há dados suficientes
   const hasData = report && report.overallProgress.totalSessions > 0
-  
+
   // Formatar tendência
   const formatTrend = (trend) => {
     if (trend === null || trend === undefined) return '—'
@@ -249,25 +260,22 @@ function ProgressReport({ onBack }) {
     if (trend < -0.05) return '📉 Precisa de atenção'
     return '📊 Estável'
   }
-  
+
   return (
     <ProgressContainer>
-      <BackButton
-        onClick={onBack}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
+      <BackButton onClick={onBack} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
         ⬅️ Voltar
       </BackButton>
-      
+
       <SectionTitle>
         <span>📊</span>
         Relatório de Progresso
       </SectionTitle>
-      
+
       {!hasData ? (
         <NoDataMessage>
-          Ainda não há dados de progresso suficientes.<br/>
+          Ainda não há dados de progresso suficientes.
+          <br />
           Continue jogando para gerar um relatório completo!
         </NoDataMessage>
       ) : (
@@ -289,7 +297,7 @@ function ProgressReport({ onBack }) {
             <StatRow>
               <StatLabel>Jogo Mais Jogado</StatLabel>
               <StatValue>
-                {report.overallProgress.mostPlayed 
+                {report.overallProgress.mostPlayed
                   ? `${gameIcons[report.overallProgress.mostPlayed]} ${getGameName(report.overallProgress.mostPlayed)}`
                   : '—'}
               </StatValue>
@@ -299,36 +307,30 @@ function ProgressReport({ onBack }) {
               <StatValue>{report.overallProgress.lastPlayed || '—'}</StatValue>
             </StatRow>
           </ProgressCard>
-          
+
           <SectionTitle>
             <span>💡</span>
             Sugestões Personalizadas
           </SectionTitle>
-          
+
           {suggestions.length > 0 ? (
             <SuggestionsList>
               {suggestions.map((suggestion, index) => (
                 <SuggestionItem key={index} type={suggestion.type}>
-                  <SuggestionIcon>
-                    {suggestionIcons[suggestion.type]}
-                  </SuggestionIcon>
-                  <SuggestionText>
-                    {suggestion.message}
-                  </SuggestionText>
+                  <SuggestionIcon>{suggestionIcons[suggestion.type]}</SuggestionIcon>
+                  <SuggestionText>{suggestion.message}</SuggestionText>
                 </SuggestionItem>
               ))}
             </SuggestionsList>
           ) : (
-            <NoDataMessage>
-              Continue jogando para receber sugestões personalizadas.
-            </NoDataMessage>
+            <NoDataMessage>Continue jogando para receber sugestões personalizadas.</NoDataMessage>
           )}
-          
+
           <SectionTitle>
             <span>🎮</span>
             Progresso por Jogo
           </SectionTitle>
-          
+
           <ProgressGrid>
             {Object.entries(report.gameReports).map(([gameId, gameReport]) => (
               <ProgressCard key={gameId} color={gameColors[gameId]}>
@@ -336,24 +338,24 @@ function ProgressReport({ onBack }) {
                   <span>{gameIcons[gameId]}</span>
                   {getGameName(gameId)}
                 </CardTitle>
-                
+
                 <StatRow>
                   <StatLabel>Sessões</StatLabel>
                   <StatValue>{gameReport.sessions}</StatValue>
                 </StatRow>
-                
+
                 <StatRow>
                   <StatLabel>Acurácia</StatLabel>
                   <StatValue>
                     {gameReport.accuracy ? `${Math.round(gameReport.accuracy)}%` : '—'}
                   </StatValue>
                 </StatRow>
-                
+
                 <StatRow>
                   <StatLabel>Tendência</StatLabel>
                   <StatValue>{formatTrend(gameReport.trend)}</StatValue>
                 </StatRow>
-                
+
                 <StatRow>
                   <StatLabel>Dificuldade Atual</StatLabel>
                   <StatValue>{formatDifficulty(gameReport.currentDifficulty)}</StatValue>
@@ -361,7 +363,7 @@ function ProgressReport({ onBack }) {
               </ProgressCard>
             ))}
           </ProgressGrid>
-          
+
           <ExportButton
             onClick={handleExport}
             whileHover={{ scale: 1.05 }}
@@ -383,7 +385,7 @@ function getGameName(gameId) {
     'image-association': 'Associação de Imagens',
     'letter-recognition': 'Reconhecimento de Letras',
     'number-counting': 'Números e Contagem',
-    'musical-sequence': 'Sequência Musical'
+    'musical-sequence': 'Sequência Musical',
   }
   return names[gameId] || gameId
 }
@@ -391,12 +393,12 @@ function getGameName(gameId) {
 // Formatar nome da dificuldade
 function formatDifficulty(difficulty) {
   const names = {
-    'EASY': 'Fácil',
-    'MEDIUM': 'Médio',
-    'HARD': 'Difícil',
-    'easy': 'Fácil',
-    'medium': 'Médio',
-    'hard': 'Difícil'
+    EASY: 'Fácil',
+    MEDIUM: 'Médio',
+    HARD: 'Difícil',
+    easy: 'Fácil',
+    medium: 'Médio',
+    hard: 'Difícil',
   }
   return names[difficulty] || difficulty
 }

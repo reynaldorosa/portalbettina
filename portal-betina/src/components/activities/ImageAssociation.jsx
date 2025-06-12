@@ -4,10 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import useSound from '../../hooks/useSound'
 import useProgress from '../../hooks/useProgress'
 import useTTS from '../../hooks/useTTS'
-import useUser from '../../hooks/useUser'
+import { useUser } from '../../contexts/UserContext'
+import useAdvancedActivity from '../../hooks/useAdvancedActivity'
 import ActivityTimer from '../common/ActivityTimer'
-import { announceToScreenReader, vibrateSuccess, vibrateError, prefersHighContrast, prefersReducedMotion } from '../../utils/accessibility'
-import { createAdaptiveModel, getAdaptiveParameters } from '../../utils/adaptiveML'
+import {
+  announceToScreenReader,
+  vibrateSuccess,
+  vibrateError,
+  prefersHighContrast,
+  prefersReducedMotion,
+} from '../../utils/accessibility/index.js'
+import { createAdaptiveModel, getAdaptiveParameters } from '../../utils/adaptive'
 import {
   GameContainer,
   GameHeader,
@@ -20,12 +27,12 @@ import {
   DifficultySelector,
   DifficultyButton,
   ControlButtons,
-  ActionButton
+  ActionButton,
 } from '../../styles/activityCommon'
 
 // Definição de cores temáticas para esta atividade
-const THEME_COLOR = 'var(--primary-orange)';
-const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-orange), var(--primary-pink))';
+const THEME_COLOR = 'var(--primary-orange)'
+const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-orange), var(--primary-pink))'
 
 // Estilos específicos para ImageAssociation com as cores temáticas
 const InstructionText = styled(BaseInstructionText)`
@@ -97,7 +104,7 @@ const OptionsGrid = styled.div`
   gap: var(--space-md);
   max-width: 600px;
   width: 100%;
-  
+
   @media (max-width: 480px) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -105,11 +112,13 @@ const OptionsGrid = styled.div`
 
 const OptionCard = styled(motion.button)`
   background: white;
-  border: 3px solid ${props => 
-    props.isCorrect === true ? 'var(--success)' :
-    props.isCorrect === false ? 'var(--error)' :
-    'var(--light-gray)'
-  };
+  border: 3px solid
+    ${(props) =>
+      props.isCorrect === true
+        ? 'var(--success)'
+        : props.isCorrect === false
+          ? 'var(--error)'
+          : 'var(--light-gray)'};
   border-radius: var(--radius-medium);
   padding: var(--space-md);
   cursor: pointer;
@@ -120,17 +129,17 @@ const OptionCard = styled(motion.button)`
   min-height: 120px;
   box-shadow: var(--shadow-light);
   position: relative;
-  
+
   &:hover:not(:disabled) {
     border-color: var(--primary-orange);
     transform: translateY(-2px);
   }
-  
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.7;
   }
-  
+
   &:focus {
     outline: 3px solid var(--primary-blue);
     outline-offset: 2px;
@@ -155,7 +164,7 @@ const FeedbackIcon = styled(motion.div)`
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 2rem;
-  background: ${props => props.isCorrect ? 'var(--success)' : 'var(--error)'};
+  background: ${(props) => (props.isCorrect ? 'var(--success)' : 'var(--error)')};
   color: white;
   border-radius: var(--radius-round);
   width: 50px;
@@ -176,7 +185,7 @@ const NextButton = styled(motion.button)`
   font-size: var(--font-size-md);
   font-weight: 600;
   margin-top: var(--space-md);
-  
+
   &:disabled {
     background: var(--medium-gray);
     cursor: not-allowed;
@@ -199,8 +208,8 @@ const associations = [
       { emoji: '🦴', label: 'Osso' },
       { emoji: '🐱', label: 'Gato' },
       { emoji: '🌸', label: 'Flor' },
-      { emoji: '🚗', label: 'Carro' }
-    ]
+      { emoji: '🚗', label: 'Carro' },
+    ],
   },
   {
     phase: 2,
@@ -215,8 +224,8 @@ const associations = [
       { emoji: '🔥', label: 'Fogo' },
       { emoji: '💧', label: 'Água' },
       { emoji: '🍕', label: 'Pizza' },
-      { emoji: '✈️', label: 'Avião' }
-    ]
+      { emoji: '✈️', label: 'Avião' },
+    ],
   },
   {
     phase: 3,
@@ -231,8 +240,8 @@ const associations = [
       { emoji: '🐄', label: 'Vaca' },
       { emoji: '🐧', label: 'Pinguim' },
       { emoji: '🎈', label: 'Balão' },
-      { emoji: '🍎', label: 'Maçã' }
-    ]
+      { emoji: '🍎', label: 'Maçã' },
+    ],
   },
 
   // FASES 4-7: Associações funcionais (Nível Médio-Baixo)
@@ -249,8 +258,8 @@ const associations = [
       { emoji: '🌸', label: 'Flor' },
       { emoji: '🐟', label: 'Peixe' },
       { emoji: '🏠', label: 'Casa' },
-      { emoji: '⚽', label: 'Bola' }
-    ]
+      { emoji: '⚽', label: 'Bola' },
+    ],
   },
   {
     phase: 5,
@@ -265,8 +274,8 @@ const associations = [
       { emoji: '👓', label: 'Óculos' },
       { emoji: '🦷', label: 'Dente' },
       { emoji: '🎧', label: 'Fone' },
-      { emoji: '🧠', label: 'Cérebro' }
-    ]
+      { emoji: '🧠', label: 'Cérebro' },
+    ],
   },
   {
     phase: 6,
@@ -281,8 +290,8 @@ const associations = [
       { emoji: '🩺', label: 'Estetoscópio' },
       { emoji: '🔨', label: 'Martelo' },
       { emoji: '📚', label: 'Livro' },
-      { emoji: '🎨', label: 'Pincel' }
-    ]
+      { emoji: '🎨', label: 'Pincel' },
+    ],
   },
   {
     phase: 7,
@@ -297,8 +306,8 @@ const associations = [
       { emoji: '😴', label: 'Dormir' },
       { emoji: '🏃', label: 'Correr' },
       { emoji: '🍽️', label: 'Comer' },
-      { emoji: '📖', label: 'Estudar' }
-    ]
+      { emoji: '📖', label: 'Estudar' },
+    ],
   },
 
   // FASES 8-11: Associações conceituais (Nível Médio-Alto)
@@ -315,8 +324,8 @@ const associations = [
       { emoji: '🤗', label: 'Abraço' },
       { emoji: '🎉', label: 'Festa' },
       { emoji: '⚽', label: 'Futebol' },
-      { emoji: '🍰', label: 'Bolo' }
-    ]
+      { emoji: '🍰', label: 'Bolo' },
+    ],
   },
   {
     phase: 9,
@@ -331,8 +340,8 @@ const associations = [
       { emoji: '☂️', label: 'Guarda-chuva' },
       { emoji: '🕶️', label: 'Óculos de sol' },
       { emoji: '🏖️', label: 'Praia' },
-      { emoji: '🔥', label: 'Fogo' }
-    ]
+      { emoji: '🔥', label: 'Fogo' },
+    ],
   },
   {
     phase: 10,
@@ -347,8 +356,8 @@ const associations = [
       { emoji: '🌙', label: 'Lua' },
       { emoji: '⭐', label: 'Estrela' },
       { emoji: '🌈', label: 'Arco-íris' },
-      { emoji: '☁️', label: 'Nuvem' }
-    ]
+      { emoji: '☁️', label: 'Nuvem' },
+    ],
   },
   {
     phase: 11,
@@ -363,8 +372,8 @@ const associations = [
       { emoji: '🎹', label: 'Piano' },
       { emoji: '📱', label: 'Celular' },
       { emoji: '🖥️', label: 'Computador' },
-      { emoji: '📺', label: 'TV' }
-    ]
+      { emoji: '📺', label: 'TV' },
+    ],
   },
 
   // FASES 12-15: Associações abstratas e complexas (Nível Difícil)
@@ -381,8 +390,8 @@ const associations = [
       { emoji: '❤️', label: 'Amor' },
       { emoji: '💰', label: 'Dinheiro' },
       { emoji: '🎯', label: 'Alvo' },
-      { emoji: '⚖️', label: 'Balança' }
-    ]
+      { emoji: '⚖️', label: 'Balança' },
+    ],
   },
   {
     phase: 13,
@@ -397,8 +406,8 @@ const associations = [
       { emoji: '🌳', label: 'Árvore' },
       { emoji: '🍎', label: 'Maçã' },
       { emoji: '🌸', label: 'Flor' },
-      { emoji: '🍃', label: 'Folha' }
-    ]
+      { emoji: '🍃', label: 'Folha' },
+    ],
   },
   {
     phase: 14,
@@ -413,8 +422,8 @@ const associations = [
       { emoji: '💡', label: 'Ideia' },
       { emoji: '⚡', label: 'Raio' },
       { emoji: '🔋', label: 'Bateria' },
-      { emoji: '🖥️', label: 'Computador' }
-    ]
+      { emoji: '🖥️', label: 'Computador' },
+    ],
   },
   {
     phase: 15,
@@ -429,28 +438,28 @@ const associations = [
       { emoji: '🌿', label: 'Vida Nova' },
       { emoji: '🗑️', label: 'Lixo' },
       { emoji: '🔥', label: 'Fogo' },
-      { emoji: '❄️', label: 'Gelo' }
-    ]
-  }
+      { emoji: '❄️', label: 'Gelo' },
+    ],
+  },
 ]
 
 // Mensagens de encorajamento específicas por dificuldade
 const encouragementMessages = {
   EASY: [
-    "Muito bem! Você está aprendendo! 🌟",
-    "Excelente! Continue assim! 👏",
-    "Perfeito! Você entendeu! ✨"
+    'Muito bem! Você está aprendendo! 🌟',
+    'Excelente! Continue assim! 👏',
+    'Perfeito! Você entendeu! ✨',
   ],
   MEDIUM: [
-    "Ótimo raciocínio! Você está evoluindo! 🧠",
-    "Incrível! Seu pensamento está se desenvolvendo! 🚀",
-    "Fantástico! Você está pensando como um especialista! 💪"
+    'Ótimo raciocínio! Você está evoluindo! 🧠',
+    'Incrível! Seu pensamento está se desenvolvendo! 🚀',
+    'Fantástico! Você está pensando como um especialista! 💪',
   ],
   HARD: [
-    "Extraordinário! Pensamento avançado! 🎓",
-    "Brilhante! Você dominou conceitos complexos! 🌟",
-    "Excepcional! Raciocínio de alto nível! 🏆"
-  ]
+    'Extraordinário! Pensamento avançado! 🎓',
+    'Brilhante! Você dominou conceitos complexos! 🌟',
+    'Excepcional! Raciocínio de alto nível! 🏆',
+  ],
 }
 
 // Dicas terapêuticas por categoria
@@ -468,14 +477,15 @@ const therapeuticTips = {
   'música-instrumentos': 'Associe expressões artísticas com suas ferramentas.',
   'símbolos-conceitos': 'Interprete o significado mais profundo dos símbolos.',
   'processos-resultados': 'Visualize o resultado final de cada processo.',
-  'abstrações-metáforas': 'Use sua imaginação para entender comparações.',  'ciclos-naturais': 'Compreenda como a natureza se renova continuamente.'
+  'abstrações-metáforas': 'Use sua imaginação para entender comparações.',
+  'ciclos-naturais': 'Compreenda como a natureza se renova continuamente.',
 }
 
 // Configurações de dificuldade para ImageAssociation
 const difficulties = [
   { id: 'EASY', name: 'Fácil (3 opções)', options: 3 },
   { id: 'MEDIUM', name: 'Médio (4 opções)', options: 4 },
-  { id: 'HARD', name: 'Difícil (5 opções)', options: 5 }
+  { id: 'HARD', name: 'Difícil (5 opções)', options: 5 },
 ]
 
 function ImageAssociation({ onBack }) {
@@ -485,30 +495,32 @@ function ImageAssociation({ onBack }) {
   const [currentPhase, setCurrentPhase] = useState(1) // Mudou de 'round' para 'currentPhase'
   const [showNext, setShowNext] = useState(false)
   const [startTime, setStartTime] = useState(null)
-  const [moveCount, setMoveCount] = useState(0);  const [adaptiveModel, setAdaptiveModel] = useState(null);
-  const [adaptiveParams, setAdaptiveParams] = useState(null);
-  const [difficulty, setDifficulty] = useState('EASY'); // Começar no fácil
-  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);  const [isGameCompleted, setIsGameCompleted] = useState(false);
-  const [therapeuticInsights, setTherapeuticInsights] = useState([]);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [gameStarted, setGameStarted] = useState(false);  // Estado para controlar início do jogo
-  
+  const [moveCount, setMoveCount] = useState(0)
+  const [adaptiveModel, setAdaptiveModel] = useState(null)
+  const [adaptiveParams, setAdaptiveParams] = useState(null)
+  const [difficulty, setDifficulty] = useState('EASY') // Começar no fácil
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
+  const [isGameCompleted, setIsGameCompleted] = useState(false)
+  const [therapeuticInsights, setTherapeuticInsights] = useState([])
+  const [showExplanation, setShowExplanation] = useState(false)
+  const [gameStarted, setGameStarted] = useState(false) // Estado para controlar início do jogo
   // Hooks
-  const { playSuccess, playError, playClick } = useSound();
-  const { userId } = useUser();
+  const { playSuccess, playError, playClick } = useSound()
+  const { userId } = useUser()
+
+  // Sistema Multissensorial - Hook para métricas avançadas
+  const { recordAdvancedInteraction, startAdvancedSession, stopAdvancedSession } =
+    useAdvancedActivity('image-association', {
+      enableVisualProcessing: true,
+      enableCognitiveProcessing: true,
+      enableSemanticMemory: true,
+    })
 
   // TTS Hook para conversão de texto em áudio
+  const { speak, speakInstruction, speakFeedback, speakQuestion, autoSpeak, stop } = useTTS()
+
   const {
-    speak,
-    speakInstruction,
-    speakFeedback,
-    speakQuestion,
-    autoSpeak,
-    stop
-  } = useTTS();
-  
-  const {
-    progress, 
+    progress,
     incrementSuccesses,
     incrementAttempts,
     resetProgress,
@@ -516,7 +528,8 @@ function ImageAssociation({ onBack }) {
     recordError,
     saveProgress,
     startActivity,
-    pauseActivity,    resumeActivity,
+    pauseActivity,
+    resumeActivity,
     finishActivity,
     getCurrentTimeMetrics,
     sessionId,
@@ -524,142 +537,222 @@ function ImageAssociation({ onBack }) {
     isActivityPaused,
     getFormattedTime,
     resetSession,
-    getEncouragementMessage
-  } = useProgress('image-association');
+    getEncouragementMessage,
+  } = useProgress('image-association')
   // Funções de controle da cronometragem
   const handlePauseResume = async () => {
     if (isActivityPaused) {
-      await resumeActivity();
+      await resumeActivity()
     } else {
-      await pauseActivity();
+      await pauseActivity()
     }
-  };
+  }
 
   const handleFinishActivity = async () => {
-    await finishActivity();
-  };  // Aplicar configurações de acessibilidade
+    await finishActivity()
+  } // Aplicar configurações de acessibilidade
   const applyAccessibilitySettings = () => {
     if (prefersHighContrast()) {
-      document.body.classList.add('high-contrast');
+      document.body.classList.add('high-contrast')
     }
     if (prefersReducedMotion()) {
-      document.body.classList.add('reduced-motion');
+      document.body.classList.add('reduced-motion')
     }
-  };
-  
+  }
+
   useEffect(() => {
     // Apenas aplicar configurações de acessibilidade na montagem do componente
-    applyAccessibilitySettings();
-  }, []);  // Função para inicializar o jogo com dificuldade selecionada
-  const initializeGame = async () => {    // Inicializar cronometragem da atividade
-    await startActivity();    setGameStarted(true);
-    
+    applyAccessibilitySettings()
+  }, []) // Função para inicializar o jogo com dificuldade selecionada
+  const initializeGame = async () => {
+    // Inicializar sessão multissensorial
+    await startAdvancedSession()
+
+    // Registrar início da atividade
+    recordAdvancedInteraction({
+      type: 'activity_start',
+      subtype: 'visual_association_initiation',
+      context: {
+        difficulty,
+        therapeuticFocus: 'visual_semantic_processing',
+        cognitiveProcess: 'semantic_association',
+        totalPhases: 15,
+      },
+    })
+
+    // Inicializar cronometragem da atividade
+    await startActivity()
+    setGameStarted(true)
+
     // Inicializar modelo adaptativo
-    const model = createAdaptiveModel('image-association', userId);
-    setAdaptiveModel(model);
-    
+    const model = createAdaptiveModel('image-association', userId)
+    setAdaptiveModel(model)
+
     // Obter parâmetros adaptados
-    const params = getAdaptiveParameters('image-association', difficulty);
-    setAdaptiveParams(params);
-    
+    const params = getAdaptiveParameters('image-association', difficulty)
+    setAdaptiveParams(params)
+
     if (params && params.difficulty !== difficulty) {
-      setDifficulty(params.difficulty);
+      setDifficulty(params.difficulty)
     }
-    
+
     // Reset do jogo
-    setCurrentPhase(1);
-    setSelectedOption(null);
-    setFeedback({});
-    setShowNext(false);
-    setStartTime(Date.now());
-    setMoveCount(0);
-    setConsecutiveCorrect(0);
-    setIsGameCompleted(false);
-    setTherapeuticInsights([]);
-    setShowExplanation(false);
-    resetProgress(); // Usar resetProgress() para zerar a pontuação completamente
-    
-    startNewPhase();
+    setCurrentPhase(1)
+    setSelectedOption(null)
+    setFeedback({})
+    setShowNext(false)
+    setStartTime(Date.now())
+    setMoveCount(0)
+    setConsecutiveCorrect(0)
+    setIsGameCompleted(false)
+    setTherapeuticInsights([])
+    setShowExplanation(false)
+    resetProgress() // Usar resetProgress() para zerar a pontuação completamente
+
+    startNewPhase()
 
     // TTS: Anunciar início do jogo
-    autoSpeak("Jogo de associação de imagens iniciado! Encontre as associações corretas entre imagens e conceitos.", 1000);
-  };
+    autoSpeak(
+      'Jogo de associação de imagens iniciado! Encontre as associações corretas entre imagens e conceitos.',
+      1000
+    )
+  }
 
   // Obter associação atual com base na fase
   const getCurrentAssociation = () => {
-    return associations.find(assoc => assoc.phase === currentPhase) || associations[0];
-  };  const startNewPhase = () => {
+    return associations.find((assoc) => assoc.phase === currentPhase) || associations[0]
+  }
+  const startNewPhase = () => {
     if (currentPhase <= 15) {
-      const association = getCurrentAssociation();
-      
+      const association = getCurrentAssociation()
+
       if (!association) {
-        console.error(`Associação não encontrada para a fase ${currentPhase}`);
-        return;
+        console.error(`Associação não encontrada para a fase ${currentPhase}`)
+        return
       }
-      
+
+      // Registrar geração de nova fase
+      recordAdvancedInteraction({
+        type: 'phase_generation',
+        subtype: 'semantic_pattern_presentation',
+        context: {
+          phase: currentPhase,
+          difficulty: association.difficulty,
+          category: association.category,
+          concept: association.concept,
+          therapeuticFocus: association.therapeuticFocus,
+          visualPattern: 'semantic_association',
+        },
+      })
+
+      // Registrar apresentação de estímulo principal
+      recordAdvancedInteraction({
+        type: 'stimulus_presentation',
+        subtype: 'visual_semantic_display',
+        context: {
+          mainItem: association.main.label,
+          cognitiveProcess: 'semantic_recognition',
+          visualProcessing: 'symbol_interpretation',
+        },
+      })
+
       // Embaralhar as opções para cada nova tentativa
-      const shuffledOptions = [...association.options].sort(() => Math.random() - 0.5);
-      
+      const shuffledOptions = [...association.options].sort(() => Math.random() - 0.5)
+
       // Definir a associação atual com opções embaralhadas
       setCurrentAssociation({
         ...association,
-        options: shuffledOptions
-      });
-      
-      setSelectedOption(null);
-      setFeedback({});
-      setShowNext(false);
-      setShowExplanation(false);
-      setStartTime(Date.now());
-      setMoveCount(0);
-      
+        options: shuffledOptions,
+      })
+
+      setSelectedOption(null)
+      setFeedback({})
+      setShowNext(false)
+      setShowExplanation(false)
+      setStartTime(Date.now())
+      setMoveCount(0)
+
       // Anunciar nova fase
-      announceToScreenReader(`Fase ${currentPhase}: ${association.therapeuticFocus}. ${therapeuticTips[association.category]}`);
+      announceToScreenReader(
+        `Fase ${currentPhase}: ${association.therapeuticFocus}. ${therapeuticTips[association.category]}`
+      )
 
       // TTS: Anunciar nova fase
-      speakQuestion(`Fase ${currentPhase}. ${association.main.label}. Qual é a associação correta?`);
+      speakQuestion(`Fase ${currentPhase}. ${association.main.label}. Qual é a associação correta?`)
     } else {
       // Jogo completo
-      setIsGameCompleted(true);
-      setCurrentAssociation(null);
+      setIsGameCompleted(true)
+      setCurrentAssociation(null)
     }
-  };
+  }
   const handleOptionClick = (option, index) => {
-    if (selectedOption !== null) return; // Já selecionou uma opção
-    
-    setSelectedOption(index);
-    setMoveCount(prev => prev + 1);
-    playClick();
-    
-    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    const isCorrect = option.emoji === currentAssociation.correct.emoji;
-    
+    if (selectedOption !== null) return // Já selecionou uma opção
+
+    setSelectedOption(index)
+    setMoveCount((prev) => prev + 1)
+    playClick()
+
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000)
+    const isCorrect = option.emoji === currentAssociation.correct.emoji
+
+    // Registrar seleção de opção
+    recordAdvancedInteraction({
+      type: 'semantic_selection',
+      subtype: 'association_choice',
+      responseTime: timeSpent * 1000,
+      accuracy: isCorrect,
+      context: {
+        selectedOption: option.label,
+        correctOption: currentAssociation.correct.label,
+        cognitiveProcess: 'semantic_association_judgment',
+        visualProcessing: 'pattern_recognition',
+      },
+    })
+
     if (isCorrect) {
-      setFeedback({ [index]: true });
-      
+      setFeedback({ [index]: true })
+
+      // Registrar sucesso da associação
+      recordAdvancedInteraction({
+        type: 'association_success',
+        subtype: 'semantic_recognition_success',
+        responseTime: timeSpent * 1000,
+        context: {
+          phase: currentPhase,
+          category: currentAssociation.category,
+          concept: currentAssociation.concept,
+          therapeuticFocus: currentAssociation.therapeuticFocus,
+          cognitiveSkill: 'semantic_memory_retrieval',
+        },
+      })
+
       // Contadores de progresso
-      const newConsecutiveCorrect = consecutiveCorrect + 1;
-      setConsecutiveCorrect(newConsecutiveCorrect);
-      
+      const newConsecutiveCorrect = consecutiveCorrect + 1
+      setConsecutiveCorrect(newConsecutiveCorrect)
+
       // Calcular pontuação baseada na dificuldade e desempenho
-      const basePoints = 10;
-      const difficultyBonus = currentAssociation.difficulty === 'EASY' ? 0 : 
-                             currentAssociation.difficulty === 'MEDIUM' ? 5 : 10;
-      const timeBonus = Math.max(0, 20 - timeSpent);
-      const consecutiveBonus = Math.min(newConsecutiveCorrect * 2, 10);
-      const score = basePoints + difficultyBonus + timeBonus + consecutiveBonus;
-      
+      const basePoints = 10
+      const difficultyBonus =
+        currentAssociation.difficulty === 'EASY'
+          ? 0
+          : currentAssociation.difficulty === 'MEDIUM'
+            ? 5
+            : 10
+      const timeBonus = Math.max(0, 20 - timeSpent)
+      const consecutiveBonus = Math.min(newConsecutiveCorrect * 2, 10)
+      const score = basePoints + difficultyBonus + timeBonus + consecutiveBonus
+
       // Registrar sucesso
-      incrementSuccesses();
-      incrementAttempts();
-      recordSuccess();
-      playSuccess();
-      vibrateSuccess();
-      
+      incrementSuccesses()
+      incrementAttempts()
+      recordSuccess()
+      playSuccess()
+      vibrateSuccess()
+
       // Mensagem de encorajamento baseada na dificuldade
       const encouragementMsg = encouragementMessages[currentAssociation.difficulty]
       const randomMsg = encouragementMsg[Math.floor(Math.random() * encouragementMsg.length)]
-      
+
       // Salvar insight terapêutico
       const insight = {
         phase: currentPhase,
@@ -668,14 +761,14 @@ function ImageAssociation({ onBack }) {
         therapeuticFocus: currentAssociation.therapeuticFocus,
         timeSpent,
         difficulty: currentAssociation.difficulty,
-        score
+        score,
       }
-      setTherapeuticInsights(prev => [...prev, insight])
-        // Mostrar explicação automaticamente
+      setTherapeuticInsights((prev) => [...prev, insight])
+      // Mostrar explicação automaticamente
       setTimeout(() => {
         setShowExplanation(true)
       }, 1000)
-      
+
       // Salvar dados para o modelo adaptativo
       if (adaptiveModel) {
         const gameData = {
@@ -687,28 +780,50 @@ function ImageAssociation({ onBack }) {
           score,
           category: currentAssociation.category,
           therapeuticFocus: currentAssociation.therapeuticFocus,
-          consecutiveCorrect: newConsecutiveCorrect
+          consecutiveCorrect: newConsecutiveCorrect,
         }
-        
         const recommendation = adaptiveModel.saveGameData(gameData)
         if (recommendation && recommendation !== difficulty) {
+          // Registrar mudança adaptativa de dificuldade
+          recordAdvancedInteraction({
+            type: 'difficulty_change',
+            subtype: 'adaptive_semantic_adjustment',
+            context: {
+              fromDifficulty: difficulty,
+              toDifficulty: recommendation,
+              trigger: 'adaptive_success_pattern',
+              cognitiveAdaptation: 'semantic_complexity_increase',
+            },
+          })
+
           setDifficulty(recommendation)
         }
       }
-      
-      announceToScreenReader(`${randomMsg} ${currentAssociation.explanation}`)
 
-      // TTS: Anunciar sucesso e explicação
+      announceToScreenReader(`${randomMsg} ${currentAssociation.explanation}`) // TTS: Anunciar sucesso e explicação
       speakFeedback(`${randomMsg} ${currentAssociation.explanation}`, true)
-      
+
+      // Registrar TTS quando usado
+      if (autoSpeak) {
+        recordAdvancedInteraction({
+          type: 'audio_playback',
+          subtype: 'tts_feedback_success',
+          context: {
+            message: randomMsg,
+            explanation: currentAssociation.explanation,
+            cognitiveSupport: 'auditory_reinforcement',
+          },
+        })
+      }
+
       // TRANSIÇÃO AUTOMÁTICA: avançar para próxima fase após 3 segundos quando acertar
       setTimeout(() => {
         const nextPhase = currentPhase + 1
-        
+
         if (nextPhase <= 15) {
           setCurrentPhase(nextPhase)
           startNewPhase()
-          
+
           // Verificar se deve ajustar dificuldade a cada 3 fases
           if (nextPhase % 3 === 1 && adaptiveModel) {
             const params = getAdaptiveParameters('image-association', difficulty)
@@ -720,7 +835,7 @@ function ImageAssociation({ onBack }) {
           // Completar jogo
           setIsGameCompleted(true)
           setCurrentAssociation(null)
-          
+
           // Salvar dados finais
           if (adaptiveModel) {
             const finalStats = {
@@ -728,14 +843,16 @@ function ImageAssociation({ onBack }) {
               totalScore: progress.score,
               accuracy: progress.accuracy,
               finalDifficulty: difficulty,
-              therapeuticInsights: therapeuticInsights.length
+              therapeuticInsights: therapeuticInsights.length,
             }
             adaptiveModel.saveGameData(finalStats)
           }
-          
+
           // Mostrar mensagem de parabéns
-          announceToScreenReader(`Parabéns! Você completou todas as 15 fases do jogo de associação com ${Math.round(progress.accuracy || 0)}% de precisão!`)
-          
+          announceToScreenReader(
+            `Parabéns! Você completou todas as 15 fases do jogo de associação com ${Math.round(progress.accuracy || 0)}% de precisão!`
+          )
+
           // Aguardar um momento antes de mostrar o seletor de dificuldade novamente
           setTimeout(() => {
             finishActivity()
@@ -743,35 +860,48 @@ function ImageAssociation({ onBack }) {
             resetProgress()
           }, 2000)
         }
-        
+
         // Salvar progresso geral
         saveProgress()
-      }, 3000) // Transição automática após 3 segundos
-    } else {
+      }, 3000) // Transição automática após 3 segundos    } else {
       setFeedback({ [index]: false })
-      
+
+      // Registrar erro da associação
+      recordAdvancedInteraction({
+        type: 'association_error',
+        subtype: 'semantic_recognition_error',
+        responseTime: timeSpent * 1000,
+        context: {
+          selectedOption: option.label,
+          correctOption: currentAssociation.correct.label,
+          phase: currentPhase,
+          category: currentAssociation.category,
+          cognitiveProcess: 'semantic_association_failure',
+        },
+      })
+
       // Resetar contador de consecutivos
       setConsecutiveCorrect(0)
-      
+
       // Registrar erro
       incrementAttempts()
       recordError()
       playError()
       vibrateError()
-      
+
       // Mostrar a resposta correta após 1 segundo
       setTimeout(() => {
         const correctIndex = currentAssociation.options.findIndex(
-          opt => opt.emoji === currentAssociation.correct.emoji
+          (opt) => opt.emoji === currentAssociation.correct.emoji
         )
-        setFeedback(prev => ({ ...prev, [correctIndex]: true }))
-        
+        setFeedback((prev) => ({ ...prev, [correctIndex]: true }))
+
         // Mostrar explicação depois do erro
         setTimeout(() => {
           setShowExplanation(true)
         }, 1000)
       }, 1000)
-      
+
       // Salvar dados do erro
       if (adaptiveModel) {
         const gameData = {
@@ -782,22 +912,32 @@ function ImageAssociation({ onBack }) {
           accuracy: 0,
           score: 0,
           category: currentAssociation.category,
-          error: true
+          error: true,
         }
-        
+
         adaptiveModel.saveGameData(gameData)
       }
-        announceToScreenReader(`Não é essa. ${currentAssociation.explanation}`)
+      announceToScreenReader(`Não é essa. ${currentAssociation.explanation}`) // TTS: Anunciar erro e explicação
+      speakFeedback(`Não é essa. ${currentAssociation.explanation}`, false)
 
-        // TTS: Anunciar erro e explicação
-        speakFeedback(`Não é essa. ${currentAssociation.explanation}`, false)
-      
+      // Registrar TTS quando usado
+      if (autoSpeak) {
+        recordAdvancedInteraction({
+          type: 'audio_playback',
+          subtype: 'tts_feedback_error',
+          context: {
+            explanation: currentAssociation.explanation,
+            cognitiveSupport: 'auditory_correction',
+          },
+        })
+      }
+
       // Mostrar botão "Próximo" apenas quando errar (para dar chance de tentar novamente ou avançar)
       setTimeout(() => {
         setShowNext(true)
       }, 3000) // Dar tempo para absorver a explicação
     }
-    
+
     // Salvar progresso geral apenas se foi erro (se foi acerto, já foi salvo na transição automática)
     if (!isCorrect) {
       saveProgress()
@@ -806,11 +946,11 @@ function ImageAssociation({ onBack }) {
   // Função handleNext mantida apenas para casos de erro (quando o usuário precisa avançar manualmente)
   const handleNext = () => {
     const nextPhase = currentPhase + 1
-    
+
     if (nextPhase <= 15) {
       setCurrentPhase(nextPhase)
       startNewPhase()
-      
+
       // Verificar se deve ajustar dificuldade a cada 3 fases
       if (nextPhase % 3 === 1 && adaptiveModel) {
         const params = getAdaptiveParameters('image-association', difficulty)
@@ -822,7 +962,7 @@ function ImageAssociation({ onBack }) {
       // Completar jogo
       setIsGameCompleted(true)
       setCurrentAssociation(null)
-      
+
       // Salvar dados finais
       if (adaptiveModel) {
         const finalStats = {
@@ -830,14 +970,16 @@ function ImageAssociation({ onBack }) {
           totalScore: progress.score,
           accuracy: progress.accuracy,
           finalDifficulty: difficulty,
-          therapeuticInsights: therapeuticInsights.length
+          therapeuticInsights: therapeuticInsights.length,
         }
         adaptiveModel.saveGameData(finalStats)
       }
-      
+
       // Mostrar mensagem de parabéns
-      announceToScreenReader(`Parabéns! Você completou todas as 15 fases do jogo de associação com ${Math.round(progress.accuracy || 0)}% de precisão!`)
-      
+      announceToScreenReader(
+        `Parabéns! Você completou todas as 15 fases do jogo de associação com ${Math.round(progress.accuracy || 0)}% de precisão!`
+      )
+
       // Aguardar um momento antes de mostrar o seletor de dificuldade novamente
       setTimeout(() => {
         finishActivity()
@@ -845,21 +987,21 @@ function ImageAssociation({ onBack }) {
         resetProgress()
       }, 2000)
     }
-    
+
     // Salvar progresso geral
     saveProgress()
   }
-  
+
   const restartGame = () => {
     setCurrentPhase(1)
     setConsecutiveCorrect(0)
     setIsGameCompleted(false)
     setTherapeuticInsights([])
     resetProgress()
-    
+
     // Voltar para a tela inicial
     setGameStarted(false)
-    
+
     // Resetar dificuldade baseada no modelo adaptativo
     if (adaptiveModel) {
       const params = getAdaptiveParameters('image-association', 'EASY')
@@ -867,17 +1009,19 @@ function ImageAssociation({ onBack }) {
         setDifficulty(params.difficulty)
       }
     }
-    
-    announceToScreenReader("Pronto para nova partida! Escolha a dificuldade para começar.")
-  }
 
+    announceToScreenReader('Pronto para nova partida! Escolha a dificuldade para começar.')
+  }
   // Interface de jogo completo
   if (isGameCompleted) {
     return (
       <GameContainer>
         <GameHeader>
           <BackButton
-            onClick={onBack}
+            onClick={async () => {
+              await stopAdvancedSession()
+              onBack()
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -890,11 +1034,9 @@ function ImageAssociation({ onBack }) {
             <span>🧩</span>
             <span>Associação de Imagens</span>
           </ActivityMainTitle>
-          <ActivitySubtitle>
-            Jornada completa!
-          </ActivitySubtitle>
+          <ActivitySubtitle>Jornada completa!</ActivitySubtitle>
         </ActivityTitleSection>
-        
+
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -904,69 +1046,75 @@ function ImageAssociation({ onBack }) {
             background: 'linear-gradient(135deg, var(--success), var(--primary-green))',
             color: 'white',
             borderRadius: 'var(--radius-large)',
-            margin: 'var(--space-lg) 0'
+            margin: 'var(--space-lg) 0',
           }}
         >
           <h3 style={{ fontSize: 'var(--font-size-xl)', marginBottom: 'var(--space-md)' }}>
             🎉 Parabéns! Jornada Completa! 🎉
-          </h3>          <p style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--space-md)' }}>
+          </h3>{' '}
+          <p style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--space-md)' }}>
             Você completou todas as 15 fases!
           </p>
+          <p style={{ marginBottom: 'var(--space-md)' }}>⭐ Estrelas ganhas: {progress.stars}/3</p>{' '}
           <p style={{ marginBottom: 'var(--space-md)' }}>
-            ⭐ Estrelas ganhas: {progress.stars}/3
-          </p>          <p style={{ marginBottom: 'var(--space-md)' }}>
             🎯 Precisão: {Math.round((progress.successes / progress.attempts) * 100) || 0}%
           </p>
           <p style={{ marginTop: '16px', fontSize: '1.1em', marginBottom: 'var(--space-md)' }}>
             {getEncouragementMessage()}
           </p>
           <p style={{ fontSize: 'var(--font-size-md)', marginBottom: 'var(--space-lg)' }}>
-            <strong>Sua pontuação final:</strong> {progress.score} pontos<br/>
-            <strong>Precisão:</strong> {Math.round(progress.accuracy || 0)}%<br/>
+            <strong>Sua pontuação final:</strong> {progress.score} pontos
+            <br />
+            <strong>Precisão:</strong> {Math.round(progress.accuracy || 0)}%<br />
             <strong>Insights terapêuticos coletados:</strong> {therapeuticInsights.length}
           </p>
-          
           {/* Resumo das conquistas terapêuticas */}
-          <div style={{ 
-            background: 'rgba(255, 255, 255, 0.2)', 
-            padding: 'var(--space-md)', 
-            borderRadius: 'var(--radius-medium)',
-            marginBottom: 'var(--space-lg)'
-          }}>
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              padding: 'var(--space-md)',
+              borderRadius: 'var(--radius-medium)',
+              marginBottom: 'var(--space-lg)',
+            }}
+          >
             <h4>🌟 Habilidades Desenvolvidas:</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-              {[...new Set(therapeuticInsights.map(t => t.therapeuticFocus))].map(focus => (
-                <span key={focus} style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  color: 'var(--primary-blue)',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '500'
-                }}>
+            <div
+              style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}
+            >
+              {[...new Set(therapeuticInsights.map((t) => t.therapeuticFocus))].map((focus) => (
+                <span
+                  key={focus}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    color: 'var(--primary-blue)',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                  }}
+                >
                   {focus.replace('-', ' ')}
                 </span>
               ))}
             </div>
           </div>
-            <NextButton
-            onClick={restartGame}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <NextButton onClick={restartGame} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             🔄 Jogar Novamente
-          </NextButton>        </motion.div>
+          </NextButton>{' '}
+        </motion.div>
       </GameContainer>
     )
   }
-  
   if (!gameStarted) {
     // Se o jogo não iniciou, não precisamos checar currentAssociation
     return (
       <GameContainer>
         <GameHeader>
           <BackButton
-            onClick={onBack}
+            onClick={async () => {
+              await stopAdvancedSession()
+              onBack()
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -983,42 +1131,47 @@ function ImageAssociation({ onBack }) {
             Encontre as associações corretas entre imagens e conceitos
           </ActivitySubtitle>
         </ActivityTitleSection>
-        
+
         <InstructionText
-          onClick={() => speakInstruction("Encontre as associações corretas entre imagens e conceitos! Escolha a dificuldade para começar.")}
+          onClick={() =>
+            speakInstruction(
+              'Encontre as associações corretas entre imagens e conceitos! Escolha a dificuldade para começar.'
+            )
+          }
         >
-          🧩 Encontre as associações corretas entre imagens e conceitos! Escolha a dificuldade para começar.
+          🧩 Encontre as associações corretas entre imagens e conceitos! Escolha a dificuldade para
+          começar.
         </InstructionText>
-        
+
         <DifficultySelector>
           {[
             {
               id: 'EASY',
               name: '🟢 Fácil',
               description: '2 opções simples',
-              icon: '😊'
+              icon: '😊',
             },
             {
               id: 'MEDIUM',
               name: '🟡 Médio',
               description: '3 opções variadas',
-              icon: '😐'
+              icon: '😐',
             },
             {
               id: 'HARD',
               name: '🔴 Difícil',
               description: '4 opções complexas',
-              icon: '🧠'
-            }
+              icon: '🧠',
+            },
           ].map((diff) => (
             <DifficultyButton
               key={diff.id}
               isActive={difficulty === diff.id}
               onClick={() => {
-                setDifficulty(diff.id);
-                playClick();
+                setDifficulty(diff.id)
+                playClick()
                 // TTS: Anunciar dificuldade selecionada
-                speak(`Dificuldade ${diff.name} selecionada. ${diff.description}`);
+                speak(`Dificuldade ${diff.name} selecionada. ${diff.description}`)
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1030,13 +1183,13 @@ function ImageAssociation({ onBack }) {
             </DifficultyButton>
           ))}
         </DifficultySelector>
-        
+
         <ControlButtons>
           <ActionButton
             onClick={() => {
-              playClick();
-              speak("Começando jogo de associação de imagens!");
-              initializeGame();
+              playClick()
+              speak('Começando jogo de associação de imagens!')
+              initializeGame()
             }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -1046,22 +1199,24 @@ function ImageAssociation({ onBack }) {
           </ActionButton>
         </ControlButtons>
       </GameContainer>
-    );
+    )
   }
   if (gameStarted && !currentAssociation) {
     // Log para debug - remover em produção
-    console.log('Aguardando associação ser definida:', { currentPhase, gameStarted });
-    
+    console.log('Aguardando associação ser definida:', { currentPhase, gameStarted })
     // Tente iniciar uma nova fase caso currentAssociation não esteja definido
     if (currentPhase <= 15) {
-      startNewPhase();
+      startNewPhase()
     }
-    
+
     return (
       <GameContainer>
         <GameHeader>
           <BackButton
-            onClick={onBack}
+            onClick={async () => {
+              await stopAdvancedSession()
+              onBack()
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -1077,11 +1232,15 @@ function ImageAssociation({ onBack }) {
         </ActivityTitleSection>
       </GameContainer>
     )
-  }  return (
+  }
+  return (
     <GameContainer>
       <GameHeader>
         <BackButton
-          onClick={onBack}
+          onClick={async () => {
+            await stopAdvancedSession()
+            onBack()
+          }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -1098,17 +1257,13 @@ function ImageAssociation({ onBack }) {
           Fase {currentPhase}/15 - {progress.score} pontos
         </ActivitySubtitle>
       </ActivityTitleSection>
-      
-      <InstructionText
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        {!gameStarted ? 
-          "🧩 Encontre as associações corretas entre imagens e conceitos! Escolha a dificuldade para começar." :
-          "O que combina com isso?"
-        }
+
+      <InstructionText initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+        {!gameStarted
+          ? '🧩 Encontre as associações corretas entre imagens e conceitos! Escolha a dificuldade para começar.'
+          : 'O que combina com isso?'}
       </InstructionText>
-        {/* ActivityTimer - invisível, apenas para métricas internas */}
+      {/* ActivityTimer - invisível, apenas para métricas internas */}
       <ActivityTimer
         timeMetrics={isActivityActive ? getCurrentTimeMetrics() : null}
         onStart={startActivity}
@@ -1119,68 +1274,75 @@ function ImageAssociation({ onBack }) {
         compact={false}
         invisible={true}
       />
-        {gameStarted && (
+      {gameStarted && (
         <GameArea>
-        <MainItem
-          key={currentAssociation.main.emoji}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <MainEmoji>{currentAssociation.main.emoji}</MainEmoji>
-          <MainLabel>{currentAssociation.main.label}</MainLabel>
-        </MainItem>
+          <MainItem
+            key={currentAssociation.main.emoji}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <MainEmoji>{currentAssociation.main.emoji}</MainEmoji>
+            <MainLabel>{currentAssociation.main.label}</MainLabel>
+          </MainItem>
 
-        <OptionsGrid>
-          {currentAssociation.options.map((option, index) => (
-            <OptionCard
-              key={`${option.emoji}-${index}`}
-              onClick={() => handleOptionClick(option, index)}
-              disabled={selectedOption !== null}
-              isCorrect={feedback[index]}
-              whileHover={selectedOption === null ? { scale: 1.05 } : {}}
-              whileTap={selectedOption === null ? { scale: 0.95 } : {}}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 + 0.5 }}
-            >
-              <OptionEmoji>{option.emoji}</OptionEmoji>
-              <OptionLabel>{option.label}</OptionLabel>
-              
-              <AnimatePresence>
-                {feedback[index] !== undefined && (
-                  <FeedbackIcon
-                    isCorrect={feedback[index]}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                  >
-                    {feedback[index] ? '✓' : '✗'}
-                  </FeedbackIcon>
-                )}
-              </AnimatePresence>
-            </OptionCard>
-          ))}        </OptionsGrid>
+          <OptionsGrid>
+            {currentAssociation.options.map((option, index) => (
+              <OptionCard
+                key={`${option.emoji}-${index}`}
+                onClick={() => handleOptionClick(option, index)}
+                disabled={selectedOption !== null}
+                isCorrect={feedback[index]}
+                whileHover={selectedOption === null ? { scale: 1.05 } : {}}
+                whileTap={selectedOption === null ? { scale: 0.95 } : {}}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 + 0.5 }}
+              >
+                <OptionEmoji>{option.emoji}</OptionEmoji>
+                <OptionLabel>{option.label}</OptionLabel>
 
-        <AnimatePresence>
-          {showNext && (
-            <NextButton
-              onClick={handleNext}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {currentPhase < 15 ? 'Próxima ➡️' : 'Finalizar 🎉'}
-            </NextButton>
-          )}
-        </AnimatePresence>
-        
-        <div style={{ textAlign: 'center', color: 'var(--medium-gray)', marginTop: 'var(--space-md)' }}>
-          <p>💡 Dica: Clique no item que tem relação com a imagem principal!</p>
-        </div>
-      </GameArea>
+                <AnimatePresence>
+                  {feedback[index] !== undefined && (
+                    <FeedbackIcon
+                      isCorrect={feedback[index]}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                    >
+                      {feedback[index] ? '✓' : '✗'}
+                    </FeedbackIcon>
+                  )}
+                </AnimatePresence>
+              </OptionCard>
+            ))}{' '}
+          </OptionsGrid>
+
+          <AnimatePresence>
+            {showNext && (
+              <NextButton
+                onClick={handleNext}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {currentPhase < 15 ? 'Próxima ➡️' : 'Finalizar 🎉'}
+              </NextButton>
+            )}
+          </AnimatePresence>
+
+          <div
+            style={{
+              textAlign: 'center',
+              color: 'var(--medium-gray)',
+              marginTop: 'var(--space-md)',
+            }}
+          >
+            <p>💡 Dica: Clique no item que tem relação com a imagem principal!</p>
+          </div>
+        </GameArea>
       )}
     </GameContainer>
   )

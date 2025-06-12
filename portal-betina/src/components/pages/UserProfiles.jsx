@@ -506,6 +506,32 @@ const AddProfileText = styled.div`
 
 // Opções de avatar e cores
 const avatarIcons = ['👧', '👦', '🧒', '👶', '🧑', '👩', '👨', '🐱', '🐶', '🐰', '🦁', '🐼', '🦊', '🐢', '🐬'];
+
+// Mapeamento de cores CSS para códigos hex
+const colorMapping = {
+  'var(--primary-blue)': '#4A90E2',
+  'var(--primary-green)': '#7ED321',
+  'var(--primary-orange)': '#F5A623',
+  'var(--primary-pink)': '#E91E63',
+  'var(--primary-purple)': '#9013FE',
+  'var(--primary-cyan)': '#00BCD4'
+};
+
+// Mapeamento reverso (hex para CSS)
+const hexToColorMapping = Object.fromEntries(
+  Object.entries(colorMapping).map(([css, hex]) => [hex, css])
+);
+
+// Função para converter cor CSS para hex
+const convertColorToHex = (color) => {
+  return colorMapping[color] || color;
+};
+
+// Função para converter hex para CSS
+const convertHexToColor = (hex) => {
+  return hexToColorMapping[hex] || hex;
+};
+
 const avatarColors = [
   'var(--primary-blue)', 
   'var(--primary-green)', 
@@ -564,6 +590,13 @@ function UserProfiles({ onBack }) {
     }
   }, [getUserProfiles, isDbConnected]);
 
+  // Função para formatar a exibição da idade
+  const formatAge = (ageRange) => {
+    if (!ageRange) return 'Idade não informada';
+    const age = ageRange.split('-')[0];
+    return age ? `${age} anos` : 'Idade não informada';
+  };
+
   // Abrir modal de criação de perfil
   const handleAddProfile = () => {
     setEditingProfile(null);
@@ -576,6 +609,7 @@ function UserProfiles({ onBack }) {
     });
     setModalOpen(true);
   };
+
   // Abrir modal para editar perfil existente
   const handleEditProfile = (profile) => {
     setEditingProfile(profile);
@@ -583,12 +617,11 @@ function UserProfiles({ onBack }) {
       name: profile.profile_name || '',
       age: profile.age_range ? profile.age_range.split('-')[0] : '',
       icon: profile.profile_icon || '👧',
-      color: profile.profile_color || 'var(--primary-blue)',
+      color: convertHexToColor(profile.profile_color) || 'var(--primary-blue)',
       accessibilityLevel: profile.preferences?.accessibilityLevel || 'medium'
     });
     setModalOpen(true);
   };
-
   // Confirmar exclusão de perfil
   const handleConfirmDelete = (profile) => {
     setProfileToDelete(profile);
@@ -600,11 +633,15 @@ function UserProfiles({ onBack }) {
       return;
     }
 
+    console.log('=== DEBUG: Salvando perfil ===');
+    console.log('Dados do formulário:', formData);
+    console.log('Perfil sendo editado:', editingProfile);
+
     try {
       const profileData = {
         profile_name: formData.name,
         profile_icon: formData.icon,
-        profile_color: formData.color,
+        profile_color: convertColorToHex(formData.color),
         age_range: formData.age ? `${formData.age}-${formData.age}` : null,
         special_needs: [],
         preferences: {
@@ -614,28 +651,49 @@ function UserProfiles({ onBack }) {
         }
       };
 
+      console.log('Dados que serão enviados para a API:', profileData);
+
       let result;
       if (editingProfile) {
         // Atualizar perfil existente
+        console.log('Atualizando perfil existente com ID:', editingProfile.id);
         result = await updateUserProfile(editingProfile.id, profileData);
       } else {
         // Criar novo perfil
+        console.log('Criando novo perfil');
         result = await createUserProfile(profileData);
       }
 
+      console.log('Resultado da API:', result);
+
       if (result) {
         // Recarregar perfis
+        console.log('Recarregando lista de perfis...');
         const userProfiles = await getUserProfiles();
+        console.log('Perfis recarregados:', userProfiles);
         setProfiles(userProfiles || []);
         setModalOpen(false);
+        
+        // Limpar dados do formulário
+        setFormData({
+          name: '',
+          age: '',
+          icon: '👧',
+          color: 'var(--primary-blue)',
+          accessibilityLevel: 'medium'
+        });
+        setEditingProfile(null);
       } else {
+        console.error('Resultado da API foi null/undefined');
         alert('Erro ao salvar o perfil. Tente novamente.');
       }
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
       alert('Ocorreu um erro ao salvar o perfil. Tente novamente.');
     }
-  };  // Excluir perfil
+  };
+
+  // Excluir perfil
   const handleDeleteProfile = async () => {
     if (!profileToDelete) return;
 
@@ -708,13 +766,11 @@ function UserProfiles({ onBack }) {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleSwitchProfile(profile)}
               >
-                {profile.is_active && <ActiveBadge>Ativo</ActiveBadge>}
-                <ProfileAvatar color={profile.profile_color || 'var(--primary-blue)'}>
+                {profile.is_active && <ActiveBadge>Ativo</ActiveBadge>}                <ProfileAvatar color={convertHexToColor(profile.profile_color) || 'var(--primary-blue)'}>
                   {profile.profile_icon || '👤'}
-                </ProfileAvatar>
-                <ProfileName>{profile.profile_name || 'Sem nome'}</ProfileName>
+                </ProfileAvatar>                <ProfileName>{profile.profile_name || 'Sem nome'}</ProfileName>
                 <ProfileInfo>
-                  {profile.age_range || 'Idade não informada'}
+                  {formatAge(profile.age_range)}
                 </ProfileInfo>
                 <ButtonGroup className="profile-buttons">
                   <Button 
@@ -896,7 +952,7 @@ function UserProfiles({ onBack }) {
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >              <ModalTitle>Confirmar Exclusão</ModalTitle>
-              <p>Tem certeza que deseja excluir o perfil "{profileToDelete?.profile_name}"?</p>
+              <p>Tem certeza que deseja excluir o perfil &ldquo;{profileToDelete?.profile_name}&rdquo;?</p>
               <p>Esta ação não pode ser desfeita.</p>
               
               <ModalButtons>

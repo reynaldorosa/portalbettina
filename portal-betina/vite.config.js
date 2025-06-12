@@ -35,14 +35,14 @@ export default defineConfig({
         'util',
         'os',
         'net',
-        'tls',
-        'dns'
+        'tls',        'dns'
       ],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
           charts: ['chart.js', 'react-chartjs-2'],
-          animations: ['framer-motion']
+          animations: ['framer-motion'],
+          csv: ['react-csv']
         },
         globals: {
           // Mapear módulos externos para variáveis globais se necessário
@@ -62,9 +62,10 @@ export default defineConfig({
     watch: {
       usePolling: true
     }
-  },  // Configurações para evitar warnings sobre módulos Node.js
+  },
+  // Configurações para evitar warnings sobre módulos Node.js
   optimizeDeps: {
     exclude: ['pg', 'pg-pool', 'pg-cloudflare'],
-    include: ['styled-components']
+    include: ['styled-components', 'react-csv']
   }
 })

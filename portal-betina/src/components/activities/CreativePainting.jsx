@@ -1,22 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import useSound from '../../hooks/useSound';
 import useProgress from '../../hooks/useProgress';
 import useTTS from '../../hooks/useTTS';
-import useUser from '../../hooks/useUser';
-import useCanvas from '../../hooks/useCanvas';
-import {
-  announceToScreenReader,
-  prefersHighContrast,
-  prefersReducedMotion,
-} from '../../utils/accessibility';
-import { createAdaptiveModel } from '../../utils/adaptiveML';
-import { drawTemplate } from '../../utils/drawTemplate';
-import {
-  DIFFICULTY_SETTINGS,
-  COLOR_PALETTE,
-} from './constants';
+import useAdvancedActivity from '../../hooks/useAdvancedActivity';
+import { announceToScreenReader, prefersHighContrast, prefersReducedMotion } from '../../utils/accessibility';
 import {
   GameContainer,
   GameHeader,
@@ -30,396 +19,538 @@ import {
   InstructionText,
 } from '../../styles/activityCommon';
 
-// Definição de cores temáticas para Pintura Criativa
+// Definição de cores temáticas
 const THEME_COLOR = 'var(--primary-pink)';
 const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-pink), var(--primary-orange))';
-const SPACING = 'var(--space-md)';
 
-import ModeSelector from './ModeSelector';
-import ToolsPanel from './ToolsPanel';
-import CanvasArea from './CanvasArea';
-import ColorPalette from './ColorPalette';
-import FeedbackMessage from './FeedbackMessage';
+// Templates simplificados para crianças
+const templates = [
+  {
+    id: 'sun',
+    name: '☀️ Sol',
+    emoji: '☀️',
+    svg: `<svg viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="40" fill="#FFF5B7" stroke="#FFD700" stroke-width="3" class="colorable" data-area="center"/>
+      <path d="M100 20 L100 40 M100 160 L100 180 M20 100 L40 100 M160 100 L180 100 M35 35 L50 50 M150 50 L165 35 M35 165 L50 150 M150 150 L165 165" stroke="#FFD700" stroke-width="4" stroke-linecap="round" class="colorable" data-area="rays"/>
+    </svg>`
+  },
+  {
+    id: 'flower',
+    name: '🌸 Flor',
+    emoji: '🌸',
+    svg: `<svg viewBox="0 0 200 200">
+      <circle cx="100" cy="80" r="15" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2" class="colorable" data-area="petal1"/>
+      <circle cx="85" cy="95" r="15" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2" class="colorable" data-area="petal2"/>
+      <circle cx="115" cy="95" r="15" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2" class="colorable" data-area="petal3"/>
+      <circle cx="90" cy="110" r="15" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2" class="colorable" data-area="petal4"/>
+      <circle cx="110" cy="110" r="15" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2" class="colorable" data-area="petal5"/>
+      <circle cx="100" cy="100" r="8" fill="#FFFF00" stroke="#FFD700" stroke-width="2" class="colorable" data-area="center"/>
+      <line x1="100" y1="130" x2="100" y2="170" stroke="#32CD32" stroke-width="6" stroke-linecap="round" class="colorable" data-area="stem"/>
+    </svg>`
+  },
+  {
+    id: 'heart',
+    name: '❤️ Coração',
+    emoji: '❤️',
+    svg: `<svg viewBox="0 0 200 200">
+      <path d="M100 150 C100 150 70 120 70 90 C70 75 85 60 100 60 C115 60 130 75 130 90 C130 120 100 150 100 150 Z" fill="#FFB6C1" stroke="#FF1493" stroke-width="3" class="colorable" data-area="heart"/>
+    </svg>`
+  }
+];
 
+// Cores simples para crianças (apenas 6 cores básicas)
+const simpleColors = [
+  { name: 'Vermelho', hex: '#FF4444', emoji: '🔴' },
+  { name: 'Azul', hex: '#4444FF', emoji: '🔵' },
+  { name: 'Verde', hex: '#44FF44', emoji: '🟢' },
+  { name: 'Amarelo', hex: '#FFFF44', emoji: '🟡' },
+  { name: 'Rosa', hex: '#FF44FF', emoji: '🩷' },
+  { name: 'Laranja', hex: '#FF8844', emoji: '🟠' }
+];
+
+// Configurações de dificuldade simplificadas
+const difficulties = [
+  { id: 'easy', name: 'Fácil', icon: '😊', description: 'Poucas partes para pintar' },
+  { id: 'medium', name: 'Médio', icon: '🤔', description: 'Mais partes para pintar' },
+  { id: 'hard', name: 'Difícil', icon: '🧠', description: 'Muitas partes para pintar' }
+];
+
+// Estilos simplificados
 const MainContainer = styled.div`
   min-height: 100vh;
-  background: ${({ $highContrast }) =>
-    $highContrast ? '#000' : THEME_GRADIENT};
-  color: ${({ $highContrast }) => ($highContrast ? '#fff' : THEME_COLOR)};
+  background: ${({ $highContrast }) => ($highContrast ? '#000' : THEME_GRADIENT)};
+  color: ${({ $highContrast }) => ($highContrast ? '#fff' : '#333')};
   display: flex;
   flex-direction: column;
-  padding: var(--space-lg);
-  gap: var(--space-md);
-
-  @media (max-width: 768px) {
-    padding: var(--space-md);
-    gap: var(--space-sm);
-  }
+  padding: 1rem;
+  gap: 1rem;
 `;
 
-const PaintWorkspace = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  grid-template-rows: auto 1fr auto;
-  gap: var(--space-lg);
-  flex: 1;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr 250px;
-    gap: var(--space-md);
-  }
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto;
-    gap: var(--space-sm);
-  }
-`;
-
-const CanvasSection = styled.div`
-  grid-column: 1;
-  grid-row: 1 / -1;
+const SimplifiedHeader = styled(GameHeader)`
   display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: var(--radius-large);
-  padding: var(--space-xl);
-  box-shadow: var(--shadow-medium);
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+`;
 
-  @media (max-width: 768px) {
-    grid-column: 1;
-    grid-row: 3;
-    padding: var(--space-lg);
+const TemplateSelector = styled.div`
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+const TemplateGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const TemplateCard = styled(motion.div)`
+  background: white;
+  border-radius: 1rem;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  border: 3px solid ${props => props.selected ? THEME_COLOR : '#ddd'};
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border-color: ${THEME_COLOR};
   }
 `;
 
-const SidePanel = styled.div`
-  grid-column: 2;
-  grid-row: 1 / -1;
+const ColorPalette = styled.div`
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const ColorGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const ColorButton = styled.button`
+  background: ${props => props.color};
+  border: 4px solid ${props => props.selected ? '#333' : '#fff'};
+  border-radius: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  font-size: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  color: ${props => props.color === '#FFFF44' ? '#333' : '#fff'};
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 
-  @media (max-width: 768px) {
-    grid-column: 1;
-    grid-row: 2;
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   }
 `;
 
-const ColorSection = styled.div`
-  grid-column: 1 / -1;
-  grid-row: 3;
-
-  @media (max-width: 768px) {
-    grid-row: 4;
+const DrawingCanvas = styled.div`
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  
+  svg {
+    max-width: 100%;
+    max-height: 100%;
+    width: 300px;
+    height: 300px;
   }
 `;
 
-const CreativePainting = ({ onBack }) => {
-  const [gameStarted, setGameStarted] = useState(false);
-  const [difficulty, setDifficulty] = useState('EASY');
-  const [mode, setMode] = useState('free');
-  const [currentChallenge, setCurrentChallenge] = useState(null);
+const ActionBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+`;
+
+const SimpleButton = styled.button`
+  background: ${THEME_COLOR};
+  color: white;
+  border: none;
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+  &:hover:not(:disabled) {
+    background: var(--primary-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const CreativePaintingSimple = ({ onBack }) => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [activeTab, setActiveTab] = useState('nature');
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [feedback, setFeedback] = useState(null);
-  const [showMetrics, setShowMetrics] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(simpleColors[0]);
+  const [difficulty, setDifficulty] = useState('easy');
+  const [gameStarted, setGameStarted] = useState(false);
+  const [coloredAreas, setColoredAreas] = useState({});
+  
   const { playClick, playSuccess } = useSound();
   const { recordSuccess } = useProgress('creative-painting');
-  const { userId } = useUser();
-
-  // TTS Hook para conversão de texto em áudio
-  const {
-    speak,
-    speakInstruction,
-    speakFeedback,
-    speakQuestion,
-    autoSpeak,
-    stop
-  } = useTTS();
+  const { speak, speakInstruction, autoSpeak } = useTTS();
   const highContrast = prefersHighContrast();
   const reducedMotion = prefersReducedMotion();
-
-  const { 
-    canvasRef, 
-    contextRef, 
-    isDrawing,
-    currentTool,
-    currentColor,
-    currentBrushSize,
-    colorsUsed,
-    drawingData,
-    strokeCount,
-    setCurrentTool,
-    setCurrentColor,
-    setCurrentBrushSize,
-    startDrawing, 
-    draw, 
-    stopDrawing, 
-    clearCanvas: clearCanvasHook, 
-    exportCanvas 
-  } = useCanvas({
-    gameStarted,
-  });
-
-  const adaptiveModel = useRef(null);
-
-  useEffect(() => {
-    if (userId) {
-      adaptiveModel.current = createAdaptiveModel('creative-painting', userId);
-    }
-  }, [userId]);
-  const clearCanvas = useCallback(() => {
-    // Usar a função do hook
-    clearCanvasHook();
-
-    // Adicionar lógica específica do componente
-    if (selectedTemplate && mode === 'guided') {
-      setTimeout(() => {
-        if (contextRef.current && canvasRef.current) {
-          drawTemplate(contextRef.current, selectedTemplate, canvasRef.current);
+  
+  // Sistema Multissensorial - Hook para métricas avançadas
+  const { recordAdvancedInteraction, startAdvancedSession, stopAdvancedSession } = 
+    useAdvancedActivity('creative-painting', {
+      enableMotorSkills: true,
+      enableCreativity: true,
+      enableVisualProcessing: true
+    });
+  // Iniciar jogo
+  const startGame = async () => {
+    // Inicializar sessão multissensorial
+    await startAdvancedSession();
+    
+    // Registrar início da atividade criativa
+    recordAdvancedInteraction({
+      type: 'activity_start',
+      subtype: 'creative_painting_initiation',
+      context: { 
+        difficulty,
+        creativeFocus: 'visual_artistic_expression',
+        motorSkills: 'fine_motor_coordination',
+        cognitiveProcess: 'creative_visualization'
+      }
+    });
+      setGameStarted(true);
+    playClick();
+    autoSpeak("Escolha o que você quer pintar!", 1000);
+    
+    // Registrar TTS quando usado
+    if (autoSpeak) {
+      recordAdvancedInteraction({
+        type: 'audio_playback',
+        subtype: 'tts_instruction',
+        context: { 
+          message: "Escolha o que você quer pintar!",
+          cognitiveSupport: 'auditory_guidance'
         }
-      }, 50);
+      });
     }
-
-    playClick();
-    announceToScreenReader('Canvas limpo');
-  }, [clearCanvasHook, playClick, selectedTemplate, mode, contextRef, canvasRef]);
-  const exportCanvasFile = useCallback(() => {
-    const dataURL = exportCanvas();
-    if (!dataURL) return;
-
-    const link = document.createElement('a');
-    link.href = dataURL;
-    link.download = `arte-criativa-${Date.now()}.png`;
-    link.click();
-    playClick();
-    announceToScreenReader('Arte exportada como imagem');
-  }, [exportCanvas, playClick]);
-
-  const handleModeChange = useCallback(
-    (newMode) => {
-      setMode(newMode);
-      setCurrentChallenge(null);
-      setSelectedTemplate(null);
-      clearCanvas();
-      playClick();
-    },
-    [clearCanvas, playClick]
-  );
-  const selectChallenge = useCallback(
-    (challenge) => {
-      if (!challenge || !challenge.title) {
-        setFeedback({ type: 'error', message: 'Desafio inválido selecionado' });
-        return;
+  };
+  // Selecionar template
+  const selectTemplate = (template) => {
+    // Registrar seleção de template
+    recordAdvancedInteraction({
+      type: 'template_selection',
+      subtype: 'creative_pattern_choice',
+      context: { 
+        templateId: template.id,
+        templateName: template.name,
+        difficulty,
+        creativeDecision: 'subject_matter_selection',
+        visualProcessing: 'pattern_recognition'
       }
-      setCurrentChallenge(challenge);
-      setMode('challenge');
-      clearCanvas();
-      playClick();
-      announceToScreenReader(`Desafio selecionado: ${challenge.title}`);
-    },
-    [clearCanvas, playClick]
-  );
-
-  const selectTemplate = useCallback(
-    (template) => {
-      if (!template || !template.name || !template.type) {
-        setFeedback({ type: 'error', message: 'Template inválido selecionado' });
-        return;
+    });
+    
+    setSelectedTemplate(template);
+    setColoredAreas({});    playClick();
+    announceToScreenReader(`${template.name} selecionado para pintar`);
+    autoSpeak(`Você escolheu pintar ${template.name}. Agora escolha uma cor!`, 500);
+    
+    // Registrar TTS quando usado
+    if (autoSpeak) {
+      recordAdvancedInteraction({
+        type: 'audio_playback',
+        subtype: 'tts_template_confirmation',
+        context: { 
+          templateName: template.name,
+          message: `Você escolheu pintar ${template.name}. Agora escolha uma cor!`,
+          cognitiveSupport: 'auditory_confirmation'
+        }
+      });
+    }
+  };
+  // Selecionar cor
+  const selectColor = (color) => {
+    // Registrar seleção de cor
+    recordAdvancedInteraction({
+      type: 'color_selection',
+      subtype: 'creative_color_choice',
+      context: { 
+        colorName: color.name,
+        colorHex: color.hex,
+        creativeDecision: 'aesthetic_color_selection',
+        visualProcessing: 'color_perception'
       }
-      setSelectedTemplate(template);
-      setMode('guided');
-      playClick();
-      announceToScreenReader(`Template selecionado: ${template.name}`);
-    },
-    [playClick]
-  );
+    });
+    
+    setSelectedColor(color);    playClick();
+    announceToScreenReader(`Cor ${color.name} selecionada`);
+    speak(`Cor ${color.name} selecionada!`);
+    
+    // Registrar TTS quando usado
+    if (speak) {
+      recordAdvancedInteraction({
+        type: 'audio_playback',
+        subtype: 'tts_color_confirmation',
+        context: { 
+          colorName: color.name,
+          message: `Cor ${color.name} selecionada!`,
+          cognitiveSupport: 'auditory_feedback'
+        }
+      });
+    }
+  };
+  // Limpar desenho
+  const clearDrawing = () => {
+    // Registrar ação de limpeza
+    recordAdvancedInteraction({
+      type: 'canvas_clear',
+      subtype: 'creative_reset_action',
+      context: { 
+        areasColored: Object.keys(coloredAreas).length,
+        creativeProcess: 'artistic_revision',
+        motorSkills: 'intentional_reset'
+      }
+    });
+    
+    setColoredAreas({});
+    playClick();
+    announceToScreenReader("Desenho limpo");
+    speak("Desenho limpo! Comece de novo!");
+  };
+  // Salvar arte
+  const saveArt = () => {
+    // Registrar conclusão da obra de arte
+    recordAdvancedInteraction({
+      type: 'artwork_completion',
+      subtype: 'creative_achievement',
+      context: { 
+        templateUsed: selectedTemplate?.name,
+        colorsUsed: Object.values(coloredAreas).length,
+        areasColored: Object.keys(coloredAreas).length,
+        difficulty,
+        creativeProcess: 'artistic_completion',
+        motorSkills: 'fine_motor_achievement'
+      }
+    });
+    
+    playSuccess();
+    announceToScreenReader("Arte salva com sucesso");
+    speak("Sua obra de arte foi salva! Muito bem!");
+    recordSuccess({ 
+      template: selectedTemplate?.name, 
+      colorsUsed: Object.values(coloredAreas).length,
+      difficulty 
+    });
+  };
 
-  const palette = useMemo(
-    () =>
-      difficulty === 'EASY'
-        ? { primary: COLOR_PALETTE.primary }
-        : difficulty === 'MEDIUM'
-        ? { primary: COLOR_PALETTE.primary, secondary: COLOR_PALETTE.secondary }
-        : COLOR_PALETTE,
-    [difficulty]
-  );
+  // Renderizar SVG com interatividade
+  const renderInteractiveSVG = () => {
+    if (!selectedTemplate) return null;
 
+    const svgContent = selectedTemplate.svg;
+    return (
+      <div
+        dangerouslySetInnerHTML={{ __html: svgContent }}        onClick={(e) => {
+          const area = e.target.getAttribute('data-area');
+          if (area && selectedColor) {
+            // Registrar interação de pintura
+            recordAdvancedInteraction({
+              type: 'painting_interaction',
+              subtype: 'area_coloring_action',
+              context: { 
+                areaId: area,
+                colorUsed: selectedColor.name,
+                colorHex: selectedColor.hex,
+                templateArea: selectedTemplate.name,
+                motorSkills: 'precise_clicking_coordination',
+                creativeProcess: 'artistic_expression',
+                visualProcessing: 'spatial_color_application'
+              }
+            });
+            
+            const newColoredAreas = { ...coloredAreas };
+            newColoredAreas[area] = selectedColor.hex;
+            setColoredAreas(newColoredAreas);
+            
+            // Aplicar cor imediatamente
+            e.target.style.fill = selectedColor.hex;
+            playClick();
+            announceToScreenReader(`Área pintada com ${selectedColor.name}`);
+          }
+        }}
+        style={{ cursor: 'pointer' }}
+      />
+    );
+  };
+  // Tela de seleção de dificuldade
   if (!gameStarted) {
     return (
       <MainContainer $highContrast={highContrast}>
-        <GameHeader>
-          <BackButton onClick={onBack} aria-label="Voltar ao menu">
+        <SimplifiedHeader>
+          <BackButton onClick={async () => {
+            await stopAdvancedSession();
+            onBack();
+          }}>
             ← Voltar
           </BackButton>
-        </GameHeader>
-        <ActivityTitleSection>
-          <ActivityMainTitle>
-            <span>🎨</span>
-            <span>Pintura Criativa</span>
-          </ActivityMainTitle>
-          <ActivitySubtitle>Estúdio de Arte Digital</ActivitySubtitle>
-        </ActivityTitleSection>
+          <ActivityMainTitle>🎨 Pintura Criativa</ActivityMainTitle>
+        </SimplifiedHeader>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={reducedMotion ? { duration: 0 } : { duration: 0.5 }}
         >
           <InstructionText
-            onClick={() => speakInstruction("Crie arte digital com pincéis, cores e ferramentas! Escolha a dificuldade para começar.")}
+            onClick={() => speakInstruction("Vamos pintar! Escolha como você quer começar!")}
           >
-            🎨 Crie arte digital com pincéis, cores e ferramentas! Escolha a dificuldade para começar.
+            🎨 Vamos pintar! Escolha como você quer começar!
           </InstructionText>
+
           <DifficultySelector>
-            {[
-              {
-                id: 'EASY',
-                name: '🟢 Fácil',
-                description: '2 cores básicas',
-                icon: '😊'
-              },
-              {
-                id: 'MEDIUM',
-                name: '🟡 Médio',
-                description: '3 paletas de cores',
-                icon: '😐'
-              },
-              {
-                id: 'HARD',
-                name: '🔴 Difícil',
-                description: '4 ferramentas avançadas',
-                icon: '🧠'
-              }
-            ].map((diff) => (
+            {difficulties.map((diff) => (
               <DifficultyButton
                 key={diff.id}
                 isActive={difficulty === diff.id}
                 onClick={() => {
                   setDifficulty(diff.id);
                   playClick();
-                  // TTS: Anunciar dificuldade selecionada
-                  speak(`Dificuldade ${diff.name} selecionada. ${diff.description}`);
+                  speak(`Dificuldade ${diff.name} escolhida!`);
                 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 themeColor={THEME_COLOR}
               >
-                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>{diff.icon}</div>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{diff.name}</div>
+                <div style={{ fontSize: '3rem' }}>{diff.icon}</div>
+                <div><strong>{diff.name}</strong></div>
                 <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>{diff.description}</div>
               </DifficultyButton>
             ))}
           </DifficultySelector>
+
           <ActionButton
-            onClick={() => {
-              setGameStarted(true);
-              setSessionStartTime(Date.now());
-              playClick();
-              // TTS: Anunciar início da pintura
-              autoSpeak("Começando estúdio de pintura criativa! Use as ferramentas para criar sua arte.", 1000);
-            }}
+            onClick={startGame}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             themeColor={THEME_COLOR}
+            style={{ fontSize: '1.5rem', padding: '1.5rem' }}
           >
-            🎨 Começar a Pintar
+            🖌️ Começar a Pintar!
           </ActionButton>
         </motion.div>
       </MainContainer>
     );
   }
-
   return (
     <MainContainer $highContrast={highContrast}>
-      <GameHeader>
-        <BackButton onClick={onBack} aria-label="Voltar ao menu">
+      <SimplifiedHeader>
+        <BackButton onClick={async () => {
+          await stopAdvancedSession();
+          onBack();
+        }}>
           ← Voltar
         </BackButton>
-      </GameHeader>
+        <ActivityMainTitle>🎨 Pintura Criativa</ActivityMainTitle>
+      </SimplifiedHeader>
 
-      <ActivityTitleSection>
-        <ActivityMainTitle>
-          <span>🎨</span>
-          <span>Pintura Criativa</span>
-        </ActivityMainTitle>
-        <ActivitySubtitle>
-          Modo: {DIFFICULTY_SETTINGS.find((d) => d.id === difficulty)?.name} •{' '}
-          {selectedTemplate?.name || currentChallenge?.title || 'Livre'}
-        </ActivitySubtitle>
-      </ActivityTitleSection>
+      {/* Seleção de Template (se ainda não selecionou) */}
+      {!selectedTemplate && (
+        <TemplateSelector>
+          <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+            🖼️ O que você quer pintar?
+          </h2>
+          <TemplateGrid>
+            {templates.map((template) => (
+              <TemplateCard
+                key={template.id}
+                onClick={() => selectTemplate(template)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
+                  {template.emoji}
+                </div>
+                <h3 style={{ fontSize: '1.2rem' }}>{template.name}</h3>
+              </TemplateCard>
+            ))}
+          </TemplateGrid>
+        </TemplateSelector>
+      )}
 
-      <AnimatePresence>
-        {feedback && (
-          <FeedbackMessage
-            feedback={feedback}
-            reducedMotion={reducedMotion}
-            onClose={() => setFeedback(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Interface de pintura */}
+      {selectedTemplate && (
+        <>
+          {/* Paleta de cores */}
+          <ColorPalette>
+            <h3 style={{ fontSize: '1.5rem', textAlign: 'center', marginBottom: '0.5rem' }}>
+              🎨 Escolha sua cor:
+            </h3>
+            <ColorGrid>
+              {simpleColors.map((color) => (
+                <ColorButton
+                  key={color.hex}
+                  color={color.hex}
+                  selected={selectedColor?.hex === color.hex}
+                  onClick={() => selectColor(color)}
+                  title={color.name}
+                >
+                  <span>{color.emoji}</span>
+                  <span style={{ fontSize: '0.8rem' }}>{color.name}</span>
+                </ColorButton>
+              ))}
+            </ColorGrid>
+          </ColorPalette>
 
-      <ModeSelector
-        mode={mode}
-        difficulty={difficulty}
-        onModeChange={handleModeChange}
-        playClick={playClick}
-      />
+          {/* Canvas de desenho */}
+          <DrawingCanvas>
+            {renderInteractiveSVG()}
+          </DrawingCanvas>
 
-      <PaintWorkspace>
-        <CanvasSection>          <CanvasArea
-            canvasRef={canvasRef}
-            currentChallenge={currentChallenge}
-            selectedTemplate={selectedTemplate}
-            strokeCount={strokeCount}
-            colorsUsed={colorsUsed}
-            startDrawing={startDrawing}
-            draw={draw}
-            stopDrawing={stopDrawing}
-            clearCanvas={clearCanvas}
-            exportCanvas={exportCanvasFile}
-            showMetrics={showMetrics}
-            setShowMetrics={setShowMetrics}
-            difficulty={difficulty}
-            playClick={playClick}
-          />
-        </CanvasSection>        <SidePanel>
-          <ToolsPanel
-            mode={mode}
-            difficulty={difficulty}
-            brushSize={currentBrushSize}
-            setBrushSize={setCurrentBrushSize}
-            selectedColor={currentColor}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            selectTemplate={selectTemplate}
-            selectChallenge={selectChallenge}
-            playClick={playClick}
-          />
-        </SidePanel>        <ColorSection>
-          <ColorPalette
-            palette={palette}
-            selectedColor={currentColor}
-            setSelectedColor={setCurrentColor}
-            difficulty={difficulty}
-            showMetrics={showMetrics}
-            sessionStartTime={sessionStartTime}
-            colorsUsed={colorsUsed}
-            strokeCount={strokeCount}
-            brushSize={currentBrushSize}
-            playClick={playClick}
-          />
-        </ColorSection>
-      </PaintWorkspace>
+          {/* Botões de ação */}
+          <ActionBar>
+            <SimpleButton onClick={clearDrawing}>
+              🧽 Limpar
+            </SimpleButton>
+            <SimpleButton onClick={() => setSelectedTemplate(null)}>
+              🔄 Trocar Desenho
+            </SimpleButton>
+            <SimpleButton onClick={saveArt}>
+              💾 Salvar Arte
+            </SimpleButton>
+          </ActionBar>
+        </>
+      )}
     </MainContainer>
   );
 };
 
-export default CreativePainting;
+export default CreativePaintingSimple;

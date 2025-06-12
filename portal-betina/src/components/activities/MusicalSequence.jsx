@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, { useReducer, useEffect, useCallback } from 'react'
 import styled from 'styled-components'
 import { motion, AnimatePresence } from 'framer-motion'
+import PropTypes from 'prop-types'
 import useSound from '../../hooks/useSound'
 import useProgress from '../../hooks/useProgress'
+import useAdvancedActivity from '../../hooks/useAdvancedActivity'
 import useTTS from '../../hooks/useTTS'
 import { useUser } from '../../contexts/UserContext'
 import ActivityTimer from '../common/ActivityTimer'
-import { announceToScreenReader, vibrateSuccess, vibrateError, prefersHighContrast, prefersReducedMotion } from '../../utils/accessibility'
+import {
+  announceToScreenReader,
+  vibrateSuccess,
+  vibrateError,
+  prefersHighContrast,
+  prefersReducedMotion,
+} from '../../utils/accessibility/index.js'
 import {
   GameContainer,
   GameHeader,
@@ -18,96 +26,245 @@ import {
   DifficultySelector,
   DifficultyButton,
   ControlButtons,
-  ActionButton
+  ActionButton,
 } from '../../styles/activityCommon'
 
-// Definição de cores temáticas para esta atividade
-const THEME_COLOR = 'var(--primary-purple)';
-const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-purple), var(--primary-blue))';
+// Definição de cores temáticas
+const THEME_COLOR = 'var(--primary-purple)'
+const THEME_GRADIENT = 'linear-gradient(135deg, var(--primary-purple), var(--primary-blue))'
 
-// Estilos específicos para MusicalSequence com as cores temáticas
+// Estilos
 const InstructionText = styled(BaseInstructionText)`
   background: ${THEME_GRADIENT};
   border: 2px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(15px);
   box-shadow: var(--shadow-strong);
+  font-size: 1.2rem;
+  padding: 1.5rem;
+  margin: 1rem auto;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 12px;
+  text-align: center;
 
-  @media (max-width: 768px) {
-    font-size: var(--font-size-md);
-    padding: var(--space-lg);
+  @media (max-width: 1024px) and (orientation: portrait) {
+    font-size: 1rem;
+    padding: 1rem;
+    width: 94%;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    font-size: 1.3rem;
+    padding: 1.5rem;
+    width: 80%;
+    max-width: 700px;
+  }
+`
+
+const MainLayout = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  gap: 0.75rem;
+  height: 100%;
+  flex: 1;
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+`
+
+const StatsPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    max-width: 240px;
+    min-width: 220px;
+    flex-shrink: 0;
+    height: fit-content;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    max-width: 260px;
+    min-width: 240px;
+    flex-shrink: 0;
+    height: fit-content;
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+`
+
+const GameStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    gap: 1rem;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+`
+
+const StatItem = styled.div`
+  text-align: center;
+`
+
+const StatValue = styled.div`
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--primary-purple);
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    font-size: 1.6rem;
+  }
+`
+
+const StatLabel = styled.div`
+  font-size: 0.9rem;
+  color: var(--medium-gray);
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    font-size: 1rem;
   }
 `
 
 const SequenceDisplay = styled.div`
   display: flex;
   justify-content: center;
-  gap: var(--space-sm);
-  margin: var(--space-lg) 0;
-  min-height: 80px;
+  gap: 1rem;
+  margin: 0.5rem 0;
+  min-height: 4rem;
   align-items: center;
+  width: 100%;
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    gap: 0.75rem;
+    min-height: 3rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    gap: 1.5rem;
+    min-height: 5rem;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    gap: 1.5rem;
+    min-height: 5rem;
+    margin: 0.75rem 0;
+  }
 `
 
 const NoteIndicator = styled(motion.div)`
-  width: 60px;
-  height: 60px;
+  width: 5rem;
+  height: 5rem;
   border-radius: 50%;
-  background: ${props => props.isActive ? 'var(--primary-orange)' : 'var(--light-gray)'};
+  background: ${(props) => (props.isActive ? 'var(--primary-orange)' : 'var(--light-gray)')};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 1.8rem;
   color: white;
   box-shadow: var(--shadow-medium);
-  border: 3px solid ${props => props.isActive ? 'var(--primary-orange)' : 'transparent'};
-  
-  @media (max-width: 768px) {
-    width: 50px;
-    height: 50px;
-    font-size: 20px;
+  border: 3px solid ${(props) => (props.isActive ? 'var(--primary-orange)' : 'transparent')};
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.2rem;
   }
 `
 
 const ButtonsContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-md);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
   width: 100%;
-  max-width: 400px;
-  
-  @media (max-width: 768px) {
-    gap: var(--space-sm);
+  max-width: 100%;
+  margin: 1rem auto;
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    max-width: 100%;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    gap: 1.5rem;
+    max-width: 100%;
+    margin: 1.5rem auto;
   }
 `
 
 const SoundButton = styled(motion.button)`
-  padding: var(--space-lg);
+  padding: 1.5rem;
   border: none;
-  border-radius: var(--radius-large);
-  font-size: var(--font-size-xl);
+  border-radius: 16px;
+  font-size: 1.4rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 0.5rem;
   transition: all var(--transition-normal);
   box-shadow: var(--shadow-medium);
-  min-height: 100px;
-  
+  min-height: 8rem;
+  width: 100%;
+
   &:focus {
     outline: 3px solid var(--primary-orange);
     outline-offset: 2px;
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-  
-  @media (max-width: 768px) {
-    padding: var(--space-md);
-    font-size: var(--font-size-lg);
-    min-height: 80px;
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    padding: 1rem;
+    font-size: 1.2rem;
+    min-height: 6rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    padding: 1.8rem;
+    font-size: 1.6rem;
+    min-height: 10rem;
   }
 `
 
@@ -115,13 +272,13 @@ const DoButton = styled(SoundButton)`
   background: linear-gradient(135deg, var(--primary-pink), var(--primary-orange));
   color: white;
   box-shadow: 0 4px 8px rgba(233, 30, 99, 0.3);
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-3px);
     box-shadow: var(--shadow-large);
-    background: linear-gradient(135deg, #F43F5E, #FB923C);
+    background: linear-gradient(135deg, #f43f5e, #fb923c);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(233, 30, 99, 0.4);
@@ -132,13 +289,13 @@ const ReButton = styled(SoundButton)`
   background: linear-gradient(135deg, var(--primary-green), var(--primary-cyan));
   color: white;
   box-shadow: 0 4px 8px rgba(126, 211, 33, 0.3);
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-3px);
     box-shadow: var(--shadow-large);
-    background: linear-gradient(135deg, #84CC16, #06B6D4);
+    background: linear-gradient(135deg, #84cc16, #06b6d4);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(126, 211, 33, 0.4);
@@ -149,13 +306,13 @@ const MiButton = styled(SoundButton)`
   background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
   color: white;
   box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-3px);
     box-shadow: var(--shadow-large);
-    background: linear-gradient(135deg, #3B82F6, #06B6D4);
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
@@ -163,146 +320,311 @@ const MiButton = styled(SoundButton)`
 `
 
 const FaButton = styled(SoundButton)`
-  background: linear-gradient(135deg, var(--primary-orange), #FFD700);
+  background: linear-gradient(135deg, var(--primary-orange), #ffd700);
   color: white;
   box-shadow: 0 4px 8px rgba(245, 166, 35, 0.3);
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-3px);
     box-shadow: var(--shadow-large);
-    background: linear-gradient(135deg, #FB923C, #FFC107);
+    background: linear-gradient(135deg, #fb923c, #ffc107);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(245, 166, 35, 0.4);
   }
 `
 
+const GameplayArea = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  gap: 0.75rem;
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    padding-left: 1rem;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    padding-left: 1.5rem;
+    justify-content: center;
+    gap: 1.2rem;
+  }
+`
+
 const ActionButtonsContainer = styled.div`
   display: flex;
-  gap: var(--space-md);
+  gap: 1rem;
   justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 1rem auto;
   flex-wrap: wrap;
-  
-  @media (max-width: 480px) {
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    gap: 0.75rem;
     flex-direction: column;
     align-items: center;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+
+  @media (min-width: 1024px) and (orientation: landscape) {
+    gap: 1.5rem;
+    max-width: 100%;
+    margin: 1.5rem auto;
   }
 `
 
 const FeedbackMessage = styled(motion.div)`
-  padding: var(--space-md);
-  border-radius: var(--radius-medium);
+  padding: 1rem;
+  border-radius: 12px;
   text-align: center;
   font-weight: 600;
-  font-size: var(--font-size-md);
-  
+  font-size: 1.1rem;
+  width: 90%;
+  max-width: 600px;
+  margin: 1rem auto;
+
   &.success {
     background: var(--success-light);
     color: var(--success-dark);
     border: 2px solid var(--primary-green);
   }
-  
+
   &.error {
     background: var(--error-light);
     color: var(--error-dark);
     border: 2px solid var(--primary-red);
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    font-size: 1rem;
+    padding: 0.8rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    font-size: 1.2rem;
+    padding: 1.2rem;
+    width: 80%;
+    max-width: 700px;
   }
 `
 
 const ProgressDisplay = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  font-size: var(--font-size-md);
+  gap: 1rem;
+  font-size: 1.1rem;
   color: var(--primary-blue);
   font-weight: 600;
+  width: 100%;
+  max-width: 600px;
+  margin: 1rem auto;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    font-size: 1rem;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    font-size: 1.2rem;
+    gap: 1.2rem;
+    max-width: 700px;
+  }
 `
 
 const PlayerProgressBar = styled.div`
   display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-sm);
+  gap: 0.5rem;
+  padding: 1rem;
   background: rgba(255, 255, 255, 0.8);
-  border-radius: var(--radius-medium);
-  margin: var(--space-sm) 0;
+  border-radius: 12px;
+  margin: 1rem auto;
   justify-content: center;
-  min-height: 40px;
+  min-height: 3rem;
   align-items: center;
+  width: 100%;
+  max-width: 600px;
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    padding: 0.8rem;
+    min-height: 2.5rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    padding: 1.2rem;
+    min-height: 3.5rem;
+    max-width: 700px;
+  }
 `
 
-const ProgressDot = styled.div.attrs(props => ({
+const ProgressDot = styled.div.attrs((props) => ({
   'data-completed': props.$isCompleted,
-  'data-current': props.$isCurrent
+  'data-current': props.$isCurrent,
 }))`
-  width: 12px;
-  height: 12px;
+  width: 0.8rem;
+  height: 0.8rem;
   border-radius: 50%;
-  background: ${props => {
+  background: ${(props) => {
     if (props.$isCompleted) return 'var(--primary-green)'
     if (props.$isCurrent) return 'var(--primary-orange)'
     return 'var(--light-gray)'
   }};
   transition: all var(--transition-normal);
-  
-  ${props => props.$isCurrent && `
+
+  ${(props) =>
+    props.$isCurrent &&
+    `
     transform: scale(1.2);
     box-shadow: 0 0 8px var(--primary-orange);
   `}
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    width: 1rem;
+    height: 1rem;
+  }
 `
 
 const StarDisplay = styled.div`
   display: flex;
-  gap: var(--space-xs);
-  font-size: var(--font-size-xl);
+  gap: 0.5rem;
+  font-size: 1.4rem;
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    font-size: 1.2rem;
+  }
+
+  @media (min-width: 768px) and (orientation: landscape) {
+    font-size: 1.6rem;
+  }
 `
 
 const notes = [
-  { id: 'do', name: 'Dó', emoji: '🔴', frequency: 261.63, waveType: 'sine' }, // C4
-  { id: 're', name: 'Ré', emoji: '🟢', frequency: 293.66, waveType: 'sine' }, // D4 - mudado para sine para melhor áudio
-  { id: 'mi', name: 'Mi', emoji: '🔵', frequency: 329.63, waveType: 'sine' }, // E4 - mudado para sine para melhor áudio
-  { id: 'fa', name: 'Fá', emoji: '🟡', frequency: 349.23, waveType: 'sine' }  // F4 - mudado emoji para amarelo e waveType para sine
+  { id: 'do', name: 'Dó', emoji: '🔴', frequency: 261.63, waveType: 'sine' },
+  { id: 're', name: 'Ré', emoji: '🟢', frequency: 293.66, waveType: 'sine' },
+  { id: 'mi', name: 'Mi', emoji: '🔵', frequency: 329.63, waveType: 'sine' },
+  { id: 'fa', name: 'Fá', emoji: '🟡', frequency: 349.23, waveType: 'sine' },
+]
+
+const difficulties = [
+  { id: 'EASY', name: 'Fácil', sequenceLength: 2, notes: ['do', 're'] },
+  { id: 'MEDIUM', name: 'Médio', sequenceLength: 3, notes: ['do', 're', 'mi'] },
+  { id: 'HARD', name: 'Difícil', sequenceLength: 4, notes: ['do', 're', 'mi', 'fa'] },
 ]
 
 const encouragingMessages = [
-  "Muito bem! 🎵",
-  "Excelente! Continue assim! 🌟",
-  "Você tem um ótimo ouvido musical! 🎶",
-  "Perfeito! Você está indo muito bem! ✨",
-  "Fantástico! Sua memória está ótima! 🧠"
+  'Muito bem! 🎵',
+  'Excelente! Continue assim! 🌟',
+  'Você tem um ótimo ouvido musical! 🎶',
+  'Perfeito! Você está indo muito bem! ✨',
+  'Fantástico! Sua memória está ótima! 🧠',
 ]
 
-function MusicalSequence({ onBack }) {
-  const [gameSequence, setGameSequence] = useState([])
-  const [playerSequence, setPlayerSequence] = useState([])
-  const [isPlayingSequence, setIsPlayingSequence] = useState(false)
-  const [isPlayerTurn, setIsPlayerTurn] = useState(false)
-  const [gameStarted, setGameStarted] = useState(false)
-  const [currentLevel, setCurrentLevel] = useState(1)
-  const [selectedDifficulty, setSelectedDifficulty] = useState('EASY') // Nova state para dificuldade
-  const [feedback, setFeedback] = useState(null)
-  const [playingNote, setPlayingNote] = useState(null)
-  const [consecutiveSuccesses, setConsecutiveSuccesses] = useState(0);
-  const { playSound, playSuccess, playError, playClick } = useSound();
-  const { recordPerformance } = useUser();
+const validateNoteData = () => {
+  notes.forEach((note) => {
+    if (!note.id || !note.name || !note.frequency || !note.waveType) {
+      console.error(`Nota inválida: ${JSON.stringify(note)}`)
+    }
+  })
+  difficulties.forEach((diff) => {
+    diff.notes = diff.notes.filter((noteId) => notes.some((n) => n.id === noteId))
+    if (!diff.sequenceLength || diff.sequenceLength < 1) {
+      console.error(`Dificuldade inválida: ${diff.id}`)
+      diff.sequenceLength = 2
+    }
+  })
+}
 
-  // TTS Hook para conversão de texto em áudio
+validateNoteData()
+
+const initialState = {
+  gameSequence: [],
+  playerSequence: [],
+  isPlayingSequence: false,
+  isPlayerTurn: false,
+  gameStarted: false,
+  currentLevel: 1,
+  difficulty: 'EASY',
+  feedback: null,
+  playingNote: null,
+  consecutiveSuccesses: 0,
+  gameMode: 'notes',
+  startTime: null,
+  moveCount: 0,
+  usedSequences: new Set(),
+  totalSequencesPlayed: 0,
+  sequenceHistory: [],
+}
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_GAME_SEQUENCE':
+      return { ...state, gameSequence: action.payload }
+    case 'SET_PLAYER_SEQUENCE':
+      return { ...state, playerSequence: action.payload }
+    case 'SET_IS_PLAYING_SEQUENCE':
+      return { ...state, isPlayingSequence: action.payload }
+    case 'SET_IS_PLAYER_TURN':
+      return { ...state, isPlayerTurn: action.payload }
+    case 'SET_GAME_STARTED':
+      return { ...state, gameStarted: action.payload }
+    case 'SET_CURRENT_LEVEL':
+      return { ...state, currentLevel: action.payload }
+    case 'SET_DIFFICULTY':
+      return { ...state, difficulty: action.payload }
+    case 'SET_FEEDBACK':
+      return { ...state, feedback: action.payload }
+    case 'SET_PLAYING_NOTE':
+      return { ...state, playingNote: action.payload }
+    case 'SET_CONSECUTIVE_SUCCESSES':
+      return { ...state, consecutiveSuccesses: action.payload }
+    case 'SET_GAME_MODE':
+      return { ...state, gameMode: action.payload }
+    case 'SET_START_TIME':
+      return { ...state, startTime: action.payload }
+    case 'INCREMENT_MOVE_COUNT':
+      return { ...state, moveCount: state.moveCount + 1 }
+    case 'SET_USED_SEQUENCES':
+      return { ...state, usedSequences: action.payload }
+    case 'INCREMENT_TOTAL_SEQUENCES':
+      return { ...state, totalSequencesPlayed: state.totalSequencesPlayed + 1 }
+    case 'ADD_SEQUENCE_HISTORY':
+      return { ...state, sequenceHistory: [...state.sequenceHistory, action.payload] }
+    case 'RESET_GAME':
+      return { ...initialState, difficulty: state.difficulty }
+    default:
+      return state
+  }
+}
+
+function MusicalSequence({ onBack }) {
+  const [state, dispatch] = useReducer(reducer, initialState)
+  const { playSound, playSuccess, playError, playClick } = useSound()
+  const { recordPerformance } = useUser()
+  const { speak, speakInstruction, speakFeedback, autoSpeak, isTTSEnabled } = useTTS()
   const {
-    speak,
-    speakInstruction,
-    speakFeedback,
-    speakQuestion,
-    autoSpeak,
-    stop,
-    isTTSEnabled
-  } = useTTS();
-  const { 
     progress,
     incrementAttempts,
     recordSuccess,
     recordError,
-    resetProgress,
     resetSession,
     saveProgress,
     startActivity,
@@ -313,360 +635,592 @@ function MusicalSequence({ onBack }) {
     sessionId,
     isActivityActive,
     isActivityPaused,
-    getFormattedTime
-  } = useProgress('musical-sequence');
-  // Gerar nova sequência
-  const generateSequence = (length = currentLevel + 1) => {
-    const sequence = [];
-    let lastNoteIndex = -1
-    
-    for (let i = 0; i < length; i++) {
-      // Evitar repetições consecutivas da mesma nota
-      let randomIndex;
-      do {
-        randomIndex = Math.floor(Math.random() * notes.length);
-      } while (randomIndex === lastNoteIndex && notes.length > 1);
-      
-      lastNoteIndex = randomIndex;
-      const randomNote = notes[randomIndex];
-      sequence.push(randomNote.id);    }
-    return sequence;
-  };  // Reproduzir som de uma nota
+  } = useProgress('musical-sequence')
+
+  // 🔥 HOOK MULTISSENSORIAL - Sistema avançado de métricas auditivas
+  const {
+    recordAdvancedInteraction,
+    recordBehavioralIndicator,
+    startAdvancedSession,
+    stopAdvancedSession,
+    sessionInsights,
+  } = useAdvancedActivity('musical-sequence', {
+    enableSensorTracking: true,
+    enableGeoLocation: false,
+    enableNeurodivergenceAnalysis: true,
+    enableAudioProcessing: true, // Específico para atividades musicais
+  })
+
+  const generateUniqueSequence = useCallback(
+    (length) => {
+      const maxAttempts = 50
+      let attempts = 0
+      const availableNotes =
+        difficulties.find((d) => d.id === state.difficulty)?.notes || notes.map((n) => n.id)
+
+      while (attempts < maxAttempts) {
+        const sequence = []
+        let lastNoteIndex = -1
+        for (let i = 0; i < length; i++) {
+          let randomIndex
+          do {
+            randomIndex = Math.floor(Math.random() * availableNotes.length)
+          } while (randomIndex === lastNoteIndex && availableNotes.length > 1)
+          lastNoteIndex = randomIndex
+          sequence.push(availableNotes[randomIndex])
+        }
+        const sequenceKey = sequence.join('-')
+        if (!state.usedSequences.has(sequenceKey)) {
+          return { sequence, sequenceKey }
+        }
+        attempts++
+      }
+
+      dispatch({ type: 'SET_USED_SEQUENCES', payload: new Set() })
+      dispatch({ type: 'ADD_SEQUENCE_HISTORY', payload: [] })
+      const sequence = Array(length).fill(availableNotes[0])
+      return { sequence, sequenceKey: sequence.join('-') }
+    },
+    [state.difficulty, state.usedSequences]
+  )
+
   const playNote = async (noteId) => {
-    setPlayingNote(noteId);
-    const note = notes.find(n => n.id === noteId);
-    
+    dispatch({ type: 'SET_PLAYING_NOTE', payload: noteId })
+    const note = notes.find((n) => n.id === noteId)
+
     if (!note) {
-      console.warn(`Nota não encontrada: ${noteId}`);
-      setPlayingNote(null);
-      return;
+      console.warn(`Nota não encontrada: ${noteId}`)
+      dispatch({ type: 'SET_PLAYING_NOTE', payload: null })
+      return
     }
-    
+
     try {
-      // Para feedback de sucesso/erro, usar useSound
+      // 🔥 TRACKING: Reprodução de nota individual
+      const notePlayStartTime = Date.now()
+
       if (noteId === 'success') {
-        playSuccess();
-        setTimeout(() => setPlayingNote(null), 500);
-        return;
+        playSuccess()
+        setTimeout(() => dispatch({ type: 'SET_PLAYING_NOTE', payload: null }), 500)
+        return
       } else if (noteId === 'error') {
-        playError();
-        setTimeout(() => setPlayingNote(null), 500);
-        return;
+        playError()
+        setTimeout(() => dispatch({ type: 'SET_PLAYING_NOTE', payload: null }), 500)
+        return
       }
-      
-      // Para notas musicais, usar Web Audio API melhorada
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      
+
+      const AudioContext = window.AudioContext || window.webkitAudioContext
       if (!AudioContext) {
-        console.warn('Web Audio API não suportada');
-        // Fallback para feedback visual apenas
-        setTimeout(() => setPlayingNote(null), 500);
-        announceToScreenReader(`Nota ${note.name} selecionada`);
-        return;
+        console.warn('Web Audio API não suportada')
+        setTimeout(() => dispatch({ type: 'SET_PLAYING_NOTE', payload: null }), 500)
+        announceToScreenReader(`Nota ${note.name} selecionada`)
+        return
       }
-      
-      const audioContext = new AudioContext();
-      
-      // Garantir que o contexto está ativo
+
+      const audioContext = new AudioContext()
       if (audioContext.state === 'suspended') {
-        await audioContext.resume();
+        await audioContext.resume()
       }
-      
-      // Criar nós de áudio com configuração otimizada
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      const filterNode = audioContext.createBiquadFilter();
-      
-      // Conectar os nós
-      oscillator.connect(filterNode);
-      filterNode.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Configurar o oscilador com frequência correta
-      oscillator.frequency.setValueAtTime(note.frequency, audioContext.currentTime);
-      oscillator.type = 'sine'; // Usar sempre sine para melhor compatibilidade
-      
-      // Configurar o filtro para suavizar o som
-      filterNode.type = 'lowpass';
-      filterNode.frequency.setValueAtTime(2000, audioContext.currentTime);
-      filterNode.Q.setValueAtTime(0.5, audioContext.currentTime);
-      
-      // Configurar envelope de volume melhorado
-      const now = audioContext.currentTime;
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.15, now + 0.02); // Attack rápido
-      gainNode.gain.setValueAtTime(0.15, now + 0.1); // Sustain
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5); // Release suave
-        // Tocar a nota
-      oscillator.start(now);
-      oscillator.stop(now + 0.5);
-      
-      // Limpeza otimizada
+
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      const filterNode = audioContext.createBiquadFilter()
+
+      oscillator.connect(filterNode)
+      filterNode.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      oscillator.frequency.setValueAtTime(note.frequency, audioContext.currentTime)
+      oscillator.type = 'sine'
+
+      filterNode.type = 'lowpass'
+      filterNode.frequency.setValueAtTime(2000, audioContext.currentTime)
+      filterNode.Q.setValueAtTime(0.5, audioContext.currentTime)
+
+      const now = audioContext.currentTime
+      gainNode.gain.setValueAtTime(0, now)
+      gainNode.gain.linearRampToValueAtTime(0.15, now + 0.02)
+      gainNode.gain.setValueAtTime(0.15, now + 0.1)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
+
+      oscillator.start(now)
+      oscillator.stop(now + 0.5)
+
+      // 🔥 TRACKING: Métricas da nota reproduzida
+      recordAdvancedInteraction({
+        type: 'note_synthesis',
+        subtype: 'audio_generation',
+        sensoryModality: 'auditory',
+        responseTime: Date.now() - notePlayStartTime,
+        accuracy: true,
+        context: {
+          noteId: noteId,
+          noteName: note.name,
+          frequency: note.frequency,
+          waveType: note.waveType,
+          duration: 500,
+          audioContextState: audioContext.state,
+          synthesis: 'web_audio_api',
+          auditoryProcessing: 'frequency_generation',
+        },
+      })
+
       setTimeout(() => {
         try {
-          if (oscillator && oscillator.disconnect) oscillator.disconnect();
-          if (filterNode && filterNode.disconnect) filterNode.disconnect();
-          if (gainNode && gainNode.disconnect) gainNode.disconnect();
-          if (audioContext && audioContext.state !== 'closed') {
-            audioContext.close().catch(e => console.warn('Erro ao fechar AudioContext:', e.message));
-          }
+          oscillator.disconnect()
+          filterNode.disconnect()
+          gainNode.disconnect()
+          audioContext.close().catch((e) => console.warn('Erro ao fechar AudioContext:', e.message))
         } catch (e) {
-          console.warn('Aviso na limpeza do AudioContext:', e.message);
+          console.warn('Aviso na limpeza do AudioContext:', e.message)
         }
-        setPlayingNote(null);
-      }, 600);
-      
+        dispatch({ type: 'SET_PLAYING_NOTE', payload: null })
+      }, 600)
     } catch (error) {
-      console.error('Erro ao reproduzir áudio para', note.name, ':', error);
-      // Fallback: apenas feedback visual
-      setTimeout(() => {
-        setPlayingNote(null);
-      }, 300);
+      console.error('Erro ao reproduzir áudio para', note.name, ':', error)
+      setTimeout(() => dispatch({ type: 'SET_PLAYING_NOTE', payload: null }), 300)
     }
-    
-    // Anunciar para leitores de tela
-    announceToScreenReader(`Nota ${note.name} reproduzida`);
-  };
 
-  // Reproduzir sequência completa
+    announceToScreenReader(`Nota ${note.name} reproduzida`)
+  }
+
   const playSequence = async () => {
-    setIsPlayingSequence(true);
-    setIsPlayerTurn(false);
-      for (let i = 0; i < gameSequence.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      await playNote(gameSequence[i]);
-      await new Promise(resolve => setTimeout(resolve, 600));
-    }
-      setIsPlayingSequence(false);
-    setIsPlayerTurn(true);
-    announceToScreenReader("Agora é sua vez! Repita a sequência que você ouviu.");
+    dispatch({ type: 'SET_IS_PLAYING_SEQUENCE', payload: true })
+    dispatch({ type: 'SET_IS_PLAYER_TURN', payload: false })
 
-    // TTS: Anunciar vez do jogador apenas se TTS estiver ativado
+    // 🔥 TRACKING: Início da reprodução da sequência musical
+    recordAdvancedInteraction({
+      type: 'sequence_playback',
+      subtype: 'musical_sequence_presentation',
+      sensoryModality: 'auditory',
+      responseTime: 0,
+      accuracy: true,
+      context: {
+        sequenceLength: state.gameSequence.length,
+        currentLevel: state.currentLevel,
+        difficulty: state.difficulty,
+        gameMode: state.gameMode,
+        notes: state.gameSequence
+          .map((noteId) => notes.find((n) => n.id === noteId)?.name)
+          .join('-'),
+        totalSequencesPlayed: state.totalSequencesPlayed,
+        activityType: 'auditory_sequence_learning',
+      },
+    })
+
+    for (let i = 0; i < state.gameSequence.length; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
+      // 🔥 TRACKING: Cada nota da sequência reproduzida
+      const noteStartTime = Date.now()
+      await playNote(state.gameSequence[i])
+
+      recordAdvancedInteraction({
+        type: 'note_playback',
+        subtype: 'sequence_note_presentation',
+        sensoryModality: 'auditory',
+        responseTime: Date.now() - noteStartTime,
+        accuracy: true,
+        context: {
+          noteId: state.gameSequence[i],
+          noteName: notes.find((n) => n.id === state.gameSequence[i])?.name,
+          notePosition: i,
+          frequency: notes.find((n) => n.id === state.gameSequence[i])?.frequency,
+          sequenceLength: state.gameSequence.length,
+          isLastNote: i === state.gameSequence.length - 1,
+        },
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 600))
+    }
+
+    dispatch({ type: 'SET_IS_PLAYING_SEQUENCE', payload: false })
+    dispatch({ type: 'SET_IS_PLAYER_TURN', payload: true })
+    announceToScreenReader('Agora é sua vez! Repita a sequência que você ouviu.')
     if (isTTSEnabled) {
-      speakInstruction("Agora é sua vez! Repita a sequência que você ouviu tocando as notas.");
+      speakInstruction('Agora é sua vez! Repita a sequência que você ouviu tocando as notas.')
     }
-  };  // Iniciar novo jogo
-  const startNewGame = async () => {
-    // Iniciar cronometragem da atividade
-    await startActivity();
+  }
 
-    // Não resetamos o progresso totalmente para manter a pontuação de sessões anteriores
-    // Em vez disso, resetamos apenas a sessão atual
-    resetSession(); // Usa resetSession em vez de resetProgress para manter a pontuação acumulada
+  const generateNewRound = useCallback(() => {
+    try {
+      const diff = difficulties.find((d) => d.id === state.difficulty) || difficulties[0]
+      const sequenceLength = Math.min(diff.sequenceLength + state.currentLevel - 1, 6)
+      const { sequence, sequenceKey } = generateUniqueSequence(sequenceLength)
 
-    // Definir nível inicial baseado na dificuldade selecionada
-    const initialLevel = getDifficultyLevel(selectedDifficulty);
-    const initialSequenceLength = getDifficultySequenceLength(selectedDifficulty);
+      // 🔥 TRACKING: Nova rodada musical gerada
+      recordAdvancedInteraction({
+        type: 'round_generation',
+        subtype: 'musical_sequence_creation',
+        sensoryModality: 'auditory',
+        responseTime: 0,
+        accuracy: true,
+        context: {
+          newSequence: sequence,
+          sequenceLength: sequenceLength,
+          difficulty: state.difficulty,
+          level: state.currentLevel,
+          totalSequencesPlayed: state.totalSequencesPlayed,
+          usedSequencesCount: state.usedSequences.size,
+          adaptiveProgression: sequenceLength > diff.sequenceLength,
+          musicalNotes: sequence
+            .map((noteId) => notes.find((n) => n.id === noteId)?.name)
+            .join('-'),
+          gameMode: state.gameMode,
+        },
+      })
 
-    setCurrentLevel(initialLevel);
-    setConsecutiveSuccesses(0);
-    setPlayerSequence([]);
-    setGameStarted(true);
-    setFeedback(null);
-    setIsPlayerTurn(false);
-    setIsPlayingSequence(false);
-
-    const newSequence = generateSequence(initialSequenceLength);
-    setGameSequence(newSequence);
-
-    // Iniciando novo jogo - pontuação atual registrada
-    announceToScreenReader(`Novo jogo iniciado no nível ${getDifficultyName(selectedDifficulty)}! Escute a sequência musical.`);    // TTS: Anunciar início do jogo apenas se TTS estiver ativado
-    if (isTTSEnabled) {
-      autoSpeak(`Novo jogo de sequência musical iniciado! Dificuldade ${getDifficultyName(selectedDifficulty)}. Escute a sequência musical e repita tocando as notas na ordem correta.`, 1000);
+      dispatch({
+        type: 'SET_USED_SEQUENCES',
+        payload: new Set([...state.usedSequences, sequenceKey]),
+      })
+      dispatch({ type: 'ADD_SEQUENCE_HISTORY', payload: sequenceKey })
+      dispatch({ type: 'INCREMENT_TOTAL_SEQUENCES' })
+      dispatch({ type: 'SET_GAME_SEQUENCE', payload: sequence })
+      dispatch({ type: 'SET_PLAYER_SEQUENCE', payload: [] })
+      dispatch({ type: 'SET_FEEDBACK', payload: null })
+      dispatch({ type: 'SET_START_TIME', payload: Date.now() })
+      dispatch({ type: 'INCREMENT_MOVE_COUNT' })
+    } catch (error) {
+      console.error('Erro ao gerar nova rodada:', error)
+      dispatch({
+        type: 'SET_FEEDBACK',
+        payload: { type: 'error', message: 'Erro ao carregar nova rodada. Tente novamente.' },
+      })
     }
-  };
-  // Reiniciar jogo atual
-  const restartGame = () => {
-    setCurrentLevel(1);
-    setPlayerSequence([]);    setFeedback(null);
-    setIsPlayerTurn(false);
-    setIsPlayingSequence(false);
-    
-    const newSequence = generateSequence(2);
-    setGameSequence(newSequence);
-    
-    announceToScreenReader("Jogo reiniciado! Escute a nova sequência.");
-  };
+  }, [
+    state.difficulty,
+    state.currentLevel,
+    state.usedSequences,
+    state.totalSequencesPlayed,
+    state.gameMode,
+    generateUniqueSequence,
+    recordAdvancedInteraction,
+  ])
 
-  // Finalizar atividade e salvar dados de timing
-  const handleFinishActivity = async () => {
-    if (sessionId) {
-      await finishActivity();
-      announceToScreenReader("Atividade finalizada! Dados de tempo salvos.");
-    }
-  };
+  const startNewGame = useCallback(async () => {
+    try {
+      await startActivity()
 
-  // Pausar/Retomar atividade
-  const handlePauseResume = () => {
-    if (isActivityPaused) {
-      resumeActivity();
-      announceToScreenReader("Atividade retomada.");
-    } else {
-      pauseActivity();
-      announceToScreenReader("Atividade pausada.");
-    }
-  };
-  // Aplicar configurações de acessibilidade
-  const applyAccessibilitySettings = () => {
-    if (prefersHighContrast()) {
-      document.body.classList.add('high-contrast');
-    }
-    if (prefersReducedMotion()) {
-      document.body.classList.add('reduced-motion');
-    }
-  };
+      // 🔥 INICIAR SESSÃO MULTISSENSORIAL AVANÇADA
+      const advancedStarted = await startAdvancedSession()
+      if (advancedStarted) {
+        console.log('🚀 Sessão avançada MusicalSequence iniciada')
 
-  useEffect(() => {
-    applyAccessibilitySettings();
-  }, []);  // Funções auxiliares para gerenciar dificuldade
-  const getDifficultyLevel = (difficulty) => {
-    switch (difficulty) {
-      case 'EASY': return 1;
-      case 'MEDIUM': return 3;
-      case 'HARD': return 5;
-      default: return 1;
-    }
-  };
+        // Tracking de início da atividade musical
+        recordAdvancedInteraction({
+          type: 'session_start',
+          subtype: 'musical_activity_initialization',
+          sensoryModality: 'auditory',
+          context: {
+            difficulty: state.difficulty,
+            gameMode: state.gameMode,
+            deviceAudioSupport: !!(window.AudioContext || window.webkitAudioContext),
+            activityType: 'auditory_memory_training',
+          },
+        })
+      }
 
-  const getDifficultySequenceLength = (difficulty) => {
-    switch (difficulty) {
-      case 'EASY': return 2;
-      case 'MEDIUM': return 3;
-      case 'HARD': return 4;
-      default: return 2;
+      resetSession()
+      dispatch({ type: 'SET_GAME_STARTED', payload: true })
+      dispatch({ type: 'SET_USED_SEQUENCES', payload: new Set() })
+      dispatch({ type: 'SET_CURRENT_LEVEL', payload: 1 })
+      dispatch({ type: 'SET_CONSECUTIVE_SUCCESSES', payload: 0 })
+      dispatch({ type: 'SET_START_TIME', payload: Date.now() })
+      generateNewRound()
+      announceToScreenReader(
+        `Novo jogo iniciado no nível ${state.difficulty}! Escute a sequência musical.`
+      )
+      if (isTTSEnabled) {
+        autoSpeak(
+          `Novo jogo de sequência musical iniciado! Dificuldade ${state.difficulty}. Escute a sequência musical e repita tocando as notas na ordem correta.`,
+          1000
+        )
+      }
+    } catch (error) {
+      console.error('Erro ao iniciar jogo:', error)
+      dispatch({
+        type: 'SET_FEEDBACK',
+        payload: { type: 'error', message: 'Erro ao iniciar o jogo. Tente novamente.' },
+      })
     }
-  };
+  }, [
+    startActivity,
+    generateNewRound,
+    state.difficulty,
+    state.gameMode,
+    startAdvancedSession,
+    recordAdvancedInteraction,
+  ])
 
-  const getDifficultyName = (difficulty) => {
-    switch (difficulty) {
-      case 'EASY': return 'Fácil';
-      case 'MEDIUM': return 'Médio';
-      case 'HARD': return 'Difícil';
-      default: return 'Fácil';
+  const toggleGameMode = useCallback(() => {
+    const newMode = state.gameMode === 'notes' ? 'rhythm' : 'notes'
+    dispatch({ type: 'SET_GAME_MODE', payload: newMode })
+    dispatch({ type: 'SET_FEEDBACK', payload: null })
+    if (state.gameStarted) {
+      setTimeout(generateNewRound, 100)
     }
-  };
+    announceToScreenReader(`Modo alterado para: ${newMode === 'notes' ? 'Notas' : 'Ritmo'}`)
+    speakInstruction(`Modo alterado para ${newMode === 'notes' ? 'notas' : 'ritmo'}.`)
+  }, [state.gameMode, state.gameStarted, generateNewRound])
 
   const calculateScore = (level, sequenceLength) => {
-    const basePoints = 10;
-    const levelBonus = level * 5;
-    const sequenceBonus = sequenceLength * 5; // Aumentado para dar mais peso ao comprimento da sequência
-    const totalPoints = basePoints + levelBonus + sequenceBonus;
+    const basePoints = 10
+    const levelBonus = level * 5
+    const sequenceBonus = sequenceLength * 5
+    const timeBonus = Math.max(0, 10 - Math.floor((Date.now() - state.startTime) / 1000))
+    return basePoints + levelBonus + sequenceBonus + timeBonus
+  }
 
-    // Pontuação calculada: base + levelBonus + sequenceBonus = total
-    return totalPoints;
-  };
+  const handlePlayerNote = useCallback(
+    (noteId) => {
+      if (!state.isPlayerTurn || state.isPlayingSequence) return
 
-  // Lidar com clique do jogador
-  const handlePlayerNote = (noteId) => {
-    if (!isPlayerTurn || isPlayingSequence) return;
-    
-    playNote(noteId);
-    const newPlayerSequence = [...playerSequence, noteId];
-    setPlayerSequence(newPlayerSequence);
-      // Verificar se a nota está correta
-    const currentIndex = newPlayerSequence.length - 1;
-    const isCorrect = gameSequence[currentIndex] === noteId;
-      
-    if (!isCorrect) {
-      // Erro - reiniciar sequência
-      recordError(); // Registra o erro sem afetar a pontuação já acumulada
-      incrementAttempts();
-      vibrateError();      playError();      setConsecutiveSuccesses(0); // Resetar contador de acertos consecutivos
-      setFeedback({ type: 'error', message: 'Ops! Tente novamente.' });      // TTS: Anunciar erro apenas se TTS estiver ativado
-      if (isTTSEnabled) {
-        speakFeedback('Ops! Tente novamente. Escute a sequência mais uma vez.', false);
-      }
+      // 🔥 TRACKING: Início da interação do jogador
+      const playerInteractionStartTime = Date.now()
+      window.musicalPlayerStartTime = playerInteractionStartTime
 
-      // Registrar desempenho para ajuste adaptativo
-      const performanceData = {
-        correct: 0,
-        incorrect: 1,
-        responseTimes: [500], // tempo médio de resposta estimado
-        level: currentLevel,
-        sequenceLength: gameSequence.length,
-        errorType: 'wrong_note',
-        notePosition: currentIndex
-      };
-      recordPerformance('musical-sequence', performanceData);
-        setTimeout(() => {
-        setPlayerSequence([]);
-        setFeedback(null);
-        playSequence();
-      }, 2000);
-      return;
-    }    // Verificar se completou a sequência
-    if (newPlayerSequence.length === gameSequence.length) {
-      // Sucesso!
-      const bonusPoints = calculateScore(currentLevel, gameSequence.length) - 10; // Subtrair os pontos base (10)
-      
-      // Registrar o sucesso com os pontos de bônus adicionais
-      const updatedScore = recordSuccess(bonusPoints);
-      
-      vibrateSuccess();
-      playSuccess();
-        // Contar acertos consecutivos e ajustar dificuldade
-      const newConsecutiveSuccesses = consecutiveSuccesses + 1;
-      setConsecutiveSuccesses(newConsecutiveSuccesses);
-      
-      // Registrar desempenho para ajuste adaptativo
-      const performanceData = {
-        correct: 1,
-        incorrect: 0,        responseTimes: [500], // tempo médio de resposta estimado
-        level: currentLevel,
-        sequenceLength: gameSequence.length,
-        consecutiveSuccesses: newConsecutiveSuccesses,
-        score: bonusPoints + 10, // Total de pontos desta sequência
-        timestamp: new Date().toISOString(),
-        activityType: 'musical-sequence'
-      };
-      
-      // Registrar desempenho
-      recordPerformance('musical-sequence', performanceData);
-        // Mensagem de feedback com base no desempenho
-      let feedbackMessage = `Parabéns! Você ganhou ${bonusPoints + 10} pontos!`;
-      if (newConsecutiveSuccesses >= 3) {
-        feedbackMessage += " Dificuldade aumentada!";
-      }
-      setFeedback({ type: 'success', message: feedbackMessage });      // TTS: Anunciar sucesso apenas se TTS estiver ativado
-      if (isTTSEnabled) {
-        speakFeedback(feedbackMessage, true);
-      }
+      playNote(noteId)
+      const newPlayerSequence = [...state.playerSequence, noteId]
+      dispatch({ type: 'SET_PLAYER_SEQUENCE', payload: newPlayerSequence })
+      dispatch({ type: 'INCREMENT_MOVE_COUNT' })
+      incrementAttempts()
 
-      // Próximo nível após delay
-      setTimeout(() => {
-        let nextLevel = currentLevel + 1;        // Aumentar dificuldade mais rápido após 3 acertos consecutivos
-        if (newConsecutiveSuccesses >= 3) {
-          nextLevel += 1;
-          setConsecutiveSuccesses(0); // Resetar contador
+      const currentIndex = newPlayerSequence.length - 1
+      const isCorrect = state.gameSequence[currentIndex] === noteId
+      const responseTime =
+        playerInteractionStartTime - (window.musicalPlayerStartTime || playerInteractionStartTime)
+
+      // 🔥 TRACKING: Interação musical do jogador
+      recordAdvancedInteraction({
+        type: 'player_note_input',
+        subtype: 'musical_note_selection',
+        sensoryModality: 'auditory',
+        responseTime: Math.max(responseTime, 100),
+        accuracy: isCorrect,
+        context: {
+          selectedNote: noteId,
+          selectedNoteName: notes.find((n) => n.id === noteId)?.name,
+          expectedNote: state.gameSequence[currentIndex],
+          expectedNoteName: notes.find((n) => n.id === state.gameSequence[currentIndex])?.name,
+          notePosition: currentIndex,
+          sequenceLength: state.gameSequence.length,
+          playerSequenceProgress: newPlayerSequence.length,
+          frequency: notes.find((n) => n.id === noteId)?.frequency,
+          level: state.currentLevel,
+          difficulty: state.difficulty,
+          gameMode: state.gameMode,
+          consecutiveSuccesses: state.consecutiveSuccesses,
+          auditoryMemoryPattern: 'sequential_note_recall',
+        },
+      })
+
+      if (!isCorrect) {
+        recordError()
+        vibrateError()
+        playError()
+        dispatch({ type: 'SET_CONSECUTIVE_SUCCESSES', payload: 0 })
+        dispatch({
+          type: 'SET_FEEDBACK',
+          payload: { type: 'error', message: 'Ops! Tente novamente.' },
+        })
+
+        // 🔥 TRACKING: Erro musical específico
+        recordAdvancedInteraction({
+          type: 'musical_error',
+          subtype: 'wrong_note_selection',
+          sensoryModality: 'auditory',
+          responseTime: responseTime,
+          accuracy: false,
+          context: {
+            errorType: 'auditory_sequence_mismatch',
+            selectedNote: noteId,
+            expectedNote: state.gameSequence[currentIndex],
+            notePosition: currentIndex,
+            sequenceLength: state.gameSequence.length,
+            difficulty: state.difficulty,
+            level: state.currentLevel,
+            frequencyDifference: Math.abs(
+              notes.find((n) => n.id === noteId)?.frequency -
+                notes.find((n) => n.id === state.gameSequence[currentIndex])?.frequency
+            ),
+            recoveryStrategy: 'sequence_replay',
+            auditoryProcessingChallenge: 'pitch_discrimination',
+          },
+        })
+
+        if (isTTSEnabled) {
+          speakFeedback('Ops! Tente novamente. Escute a sequência mais uma vez.', false)
         }
-        setCurrentLevel(nextLevel);
-        setPlayerSequence([]);
-        setFeedback(null);
-        
-        const nextSequence = generateSequence(Math.min(nextLevel + 1, 6)); // Máximo 6 notas
-        setGameSequence(nextSequence);
-          announceToScreenReader(`Nível ${nextLevel}! Escute a nova sequência.`);          // TTS: Anunciar novo nível apenas se TTS estiver ativado
-          if (isTTSEnabled) {
-            autoSpeak(`Nível ${nextLevel}! Escute a nova sequência musical.`, 500);
-          }
-      }, 2000);
-    }
-  };
+        const performanceData = {
+          correct: 0,
+          incorrect: 1,
+          responseTimes: [500],
+          level: state.currentLevel,
+          sequenceLength: state.gameSequence.length,
+          errorType: 'wrong_note',
+          notePosition: currentIndex,
+        }
+        recordPerformance('musical-sequence', performanceData)
+        setTimeout(() => {
+          dispatch({ type: 'SET_PLAYER_SEQUENCE', payload: [] })
+          dispatch({ type: 'SET_FEEDBACK', payload: null })
+          playSequence()
+        }, 2000)
+        return
+      }
 
-  // Reproduzir sequência quando ela muda
-  useEffect(() => {
-    if (gameSequence.length > 0 && gameStarted) {
-      const timer = setTimeout(() => {
-        playSequence();      }, 1000);
-      return () => clearTimeout(timer);
+      if (newPlayerSequence.length === state.gameSequence.length) {
+        const totalPoints = calculateScore(state.currentLevel, state.gameSequence.length)
+        recordSuccess(totalPoints - 10)
+        vibrateSuccess()
+        playSuccess()
+        const newConsecutiveSuccesses = state.consecutiveSuccesses + 1
+        dispatch({ type: 'SET_CONSECUTIVE_SUCCESSES', payload: newConsecutiveSuccesses })
+        const successMessage =
+          encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)]
+        const feedbackMessage = `${successMessage} +${totalPoints} pontos!`
+        dispatch({ type: 'SET_FEEDBACK', payload: { type: 'success', message: feedbackMessage } })
+
+        // 🔥 TRACKING: Sucesso musical completo
+        recordAdvancedInteraction({
+          type: 'sequence_completion',
+          subtype: 'musical_sequence_success',
+          sensoryModality: 'auditory',
+          responseTime: Date.now() - state.startTime,
+          accuracy: true,
+          context: {
+            sequenceLength: state.gameSequence.length,
+            totalScore: totalPoints,
+            level: state.currentLevel,
+            difficulty: state.difficulty,
+            consecutiveSuccesses: newConsecutiveSuccesses,
+            averageNoteResponseTime: responseTime,
+            auditoryMemorySkill: 'sequential_pattern_recognition',
+            musicalProgress: 'improved_auditory_processing',
+            notesCompleted: state.gameSequence
+              .map((noteId) => notes.find((n) => n.id === noteId)?.name)
+              .join('-'),
+          },
+        })
+
+        if (isTTSEnabled) {
+          speakFeedback(feedbackMessage, true)
+        }
+        const performanceData = {
+          correct: 1,
+          incorrect: 0,
+          responseTimes: [500],
+          level: state.currentLevel,
+          sequenceLength: state.gameSequence.length,
+          consecutiveSuccesses: newConsecutiveSuccesses,
+          score: totalPoints,
+          timestamp: new Date().toISOString(),
+          activityType: 'musical-sequence',
+        }
+        recordPerformance('musical-sequence', performanceData)
+        saveProgress()
+        setTimeout(() => {
+          let nextLevel = state.currentLevel + 1
+          if (newConsecutiveSuccesses >= 3) {
+            nextLevel += 1
+            dispatch({ type: 'SET_CONSECUTIVE_SUCCESSES', payload: 0 })
+          }
+          dispatch({ type: 'SET_CURRENT_LEVEL', payload: nextLevel })
+          dispatch({ type: 'SET_PLAYER_SEQUENCE', payload: [] })
+          dispatch({ type: 'SET_FEEDBACK', payload: null })
+          generateNewRound()
+          announceToScreenReader(`Nível ${nextLevel}! Escute a nova sequência.`)
+          if (isTTSEnabled) {
+            autoSpeak(`Nível ${nextLevel}! Escute a nova sequência musical.`, 500)
+          }
+        }, 2000)
+      }
+    },
+    [
+      state.isPlayerTurn,
+      state.isPlayingSequence,
+      state.playerSequence,
+      state.gameSequence,
+      state.currentLevel,
+      state.consecutiveSuccesses,
+      state.startTime,
+      incrementAttempts,
+      recordSuccess,
+      recordError,
+      saveProgress,
+      generateNewRound,
+      recordAdvancedInteraction,
+      playNote,
+      speakFeedback,
+      isTTSEnabled,
+      recordPerformance,
+      calculateScore,
+      playSequence,
+    ]
+  )
+
+  const restartGame = useCallback(() => {
+    dispatch({ type: 'RESET_GAME' })
+    generateNewRound()
+    announceToScreenReader('Jogo reiniciado! Escute a nova sequência.')
+  }, [generateNewRound])
+
+  const handleFinishActivity = async () => {
+    if (sessionId) {
+      await finishActivity()
+      announceToScreenReader('Atividade finalizada! Dados de tempo salvos.')
     }
-  }, [gameSequence, gameStarted]);    return (
+  }
+
+  const handlePauseResume = () => {
+    if (isActivityPaused) {
+      resumeActivity()
+      announceToScreenReader('Atividade retomada.')
+    } else {
+      pauseActivity()
+      announceToScreenReader('Atividade pausada.')
+    }
+  }
+
+  useEffect(() => {
+    if (prefersHighContrast()) document.body.classList.add('high-contrast')
+    if (prefersReducedMotion()) document.body.classList.add('reduced-motion')
+    return () => {
+      document.body.classList.remove('high-contrast', 'reduced-motion')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (state.gameSequence.length > 0 && state.gameStarted) {
+      const timer = setTimeout(() => {
+        playSequence()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [state.gameSequence, state.gameStarted])
+
+  // 🔥 CLEANUP MULTISSENSORIAL - Finalizar sessão ao sair da atividade
+  useEffect(() => {
+    return () => {
+      finishActivity()
+      const handleExit = async () => {
+        const finalReport = await stopAdvancedSession()
+        if (finalReport) {
+          console.log('🏁 Sessão MusicalSequence finalizada:', finalReport)
+        }
+      }
+      handleExit()
+    }
+  }, [finishActivity, stopAdvancedSession])
+
+  return (
     <GameContainer>
       <GameHeader>
         <BackButton
           onClick={onBack}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          aria-label="Voltar ao menu principal"
         >
           ⬅️ Voltar
         </BackButton>
@@ -678,9 +1232,12 @@ function MusicalSequence({ onBack }) {
           <span>Sequência Musical</span>
         </ActivityMainTitle>
         <ActivitySubtitle>
-          Desenvolva sua memória auditiva e senso musical
+          {state.gameStarted
+            ? `Modo: ${state.gameMode === 'notes' ? 'Notas' : 'Ritmo'} - ${progress.score || 0} pontos`
+            : 'Desenvolva sua memória auditiva e senso musical'}
         </ActivitySubtitle>
-      </ActivityTitleSection>      {/* Cronômetro da Atividade - invisível, apenas para métricas internas */}
+      </ActivityTitleSection>
+
       <ActivityTimer
         timeMetrics={isActivityActive ? getCurrentTimeMetrics() : null}
         onStart={startActivity}
@@ -692,113 +1249,258 @@ function MusicalSequence({ onBack }) {
         invisible={true}
       />
 
-      {gameStarted && isPlayingSequence && (
-        <InstructionText
-          onClick={() => isTTSEnabled && speakInstruction('Escute com atenção a sequência musical.')}
-        >
-          🎧 Escute com atenção...
-        </InstructionText>
-      )}
-
-      {gameStarted && isPlayerTurn && (
-        <InstructionText
-          onClick={() => isTTSEnabled && speakInstruction('Sua vez! Repita a sequência tocando as notas.')}
-        >
-          🎹 Sua vez! Repita a sequência
-        </InstructionText>
-      )}
-
-      {gameStarted && (
-        <ProgressDisplay>
-          <span>Nível: {currentLevel}</span>
-          <span>•</span>
-          <span>Pontos: {progress.score}</span>
-          <span>•</span>
-          <StarDisplay>
-            {Array.from({ length: 3 }, (_, i) => (
-              <span key={i}>
-                {i < progress.stars ? '⭐' : '☆'}
-              </span>
-            ))}
-          </StarDisplay>
-        </ProgressDisplay>
-      )}
-
-      <SequenceDisplay>
-        <AnimatePresence>
-          {gameSequence.map((noteId, index) => {
-            const note = notes.find(n => n.id === noteId)
-            const isCurrentlyPlaying = playingNote === noteId
-            
-            return (
-              <NoteIndicator
-                key={`${noteId}-${index}`}
-                isActive={isCurrentlyPlaying}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ 
-                  scale: isCurrentlyPlaying ? 1.2 : 1, 
-                  opacity: 1 
-                }}
-                exit={{ scale: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+      {state.gameStarted ? (
+        <MainLayout>
+          <StatsPanel>
+            <GameStats>
+              <StatItem>
+                <StatValue>{state.currentLevel}</StatValue>
+                <StatLabel>Nível</StatLabel>
+              </StatItem>
+              <StatItem>
+                <StatValue>{progress.score || 0}</StatValue>
+                <StatLabel>Pontos</StatLabel>
+              </StatItem>
+              <StatItem>
+                <StatValue>{state.totalSequencesPlayed}</StatValue>
+                <StatLabel>Sequências</StatLabel>
+              </StatItem>
+              <StatItem>
+                <StarDisplay>
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <span key={i}>{i < (progress.stars || 0) ? '⭐' : '☆'}</span>
+                  ))}
+                </StarDisplay>
+                <StatLabel>Estrelas</StatLabel>
+              </StatItem>
+            </GameStats>
+            {state.isPlayingSequence && (
+              <InstructionText
+                onClick={() =>
+                  isTTSEnabled && speakInstruction('Escute com atenção a sequência musical.')
+                }
+                role="button"
+                aria-label="Instrução: Escute com atenção"
               >
-                {note.emoji}
-              </NoteIndicator>
-            )
-          })}
-        </AnimatePresence>
-      </SequenceDisplay>
+                🎧 Escute com atenção...
+              </InstructionText>
+            )}
+            {state.isPlayerTurn && (
+              <InstructionText
+                onClick={() =>
+                  isTTSEnabled && speakInstruction('Sua vez! Repita a sequência tocando as notas.')
+                }
+                role="button"
+                aria-label="Instrução: Sua vez"
+              >
+                🎹 Sua vez! Repita a sequência
+              </InstructionText>
+            )}
+            <SequenceDisplay>
+              <AnimatePresence>
+                {state.gameSequence.map((noteId, index) => {
+                  const note = notes.find((n) => n.id === noteId)
+                  const isCurrentlyPlaying = state.playingNote === noteId
 
-      {gameStarted && isPlayerTurn && (
-        <PlayerProgressBar>
-          {gameSequence.map((_, index) => (
-            <ProgressDot
-              key={index}
-              $isCompleted={index < playerSequence.length}
-              $isCurrent={index === playerSequence.length}
-            />
-          ))}
-        </PlayerProgressBar>
-      )}      {!gameStarted ? (
-        <>
+                  return (
+                    <NoteIndicator
+                      key={`${noteId}-${index}`}
+                      isActive={isCurrentlyPlaying}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{
+                        scale: isCurrentlyPlaying ? 1.2 : 1,
+                        opacity: 1,
+                      }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {note?.emoji || '🎵'}
+                    </NoteIndicator>
+                  )
+                })}
+              </AnimatePresence>
+            </SequenceDisplay>
+            {state.isPlayerTurn && (
+              <PlayerProgressBar>
+                {state.gameSequence.map((_, index) => (
+                  <ProgressDot
+                    key={index}
+                    $isCompleted={index < state.playerSequence.length}
+                    $isCurrent={index === state.playerSequence.length}
+                  />
+                ))}
+              </PlayerProgressBar>
+            )}
+          </StatsPanel>
+          <GameplayArea>
+            <ControlButtons>
+              <ActionButton
+                className="secondary"
+                onClick={toggleGameMode}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label={`Trocar para modo ${state.gameMode === 'notes' ? 'ritmo' : 'notas'}`}
+              >
+                🔄 Trocar Modo: {state.gameMode === 'notes' ? 'Notas→Ritmo' : 'Ritmo→Notas'}
+              </ActionButton>
+              <ActionButton
+                onClick={playSequence}
+                disabled={state.isPlayingSequence || !state.gameStarted}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Ouvir sequência novamente"
+              >
+                🔊 Ouvir Novamente
+              </ActionButton>
+            </ControlButtons>
+
+            <ButtonsContainer>
+              <DoButton
+                onClick={() => handlePlayerNote('do')}
+                disabled={!state.isPlayerTurn}
+                whileHover={state.isPlayerTurn ? { scale: 1.05 } : {}}
+                whileTap={state.isPlayerTurn ? { scale: 0.95 } : {}}
+                animate={
+                  state.playingNote === 'do'
+                    ? {
+                        scale: [1, 1.1, 1],
+                        boxShadow: [
+                          '0 4px 8px rgba(233, 30, 99, 0.3)',
+                          '0 8px 16px rgba(233, 30, 99, 0.6)',
+                          '0 4px 8px rgba(233, 30, 99, 0.3)',
+                        ],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.3 }}
+                aria-label="Tocar nota Dó"
+              >
+                <span>🎵</span>
+                <span>Dó</span>
+              </DoButton>
+
+              <ReButton
+                onClick={() => handlePlayerNote('re')}
+                disabled={!state.isPlayerTurn}
+                whileHover={state.isPlayerTurn ? { scale: 1.05 } : {}}
+                whileTap={state.isPlayerTurn ? { scale: 0.95 } : {}}
+                animate={
+                  state.playingNote === 're'
+                    ? {
+                        scale: [1, 1.1, 1],
+                        boxShadow: [
+                          '0 4px 8px rgba(126, 211, 33, 0.3)',
+                          '0 8px 16px rgba(126, 211, 33, 0.6)',
+                          '0 4px 8px rgba(126, 211, 33, 0.3)',
+                        ],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.3 }}
+                aria-label="Tocar nota Ré"
+              >
+                <span>🎶</span>
+                <span>Ré</span>
+              </ReButton>
+
+              <MiButton
+                onClick={() => handlePlayerNote('mi')}
+                disabled={!state.isPlayerTurn}
+                whileHover={state.isPlayerTurn ? { scale: 1.05 } : {}}
+                whileTap={state.isPlayerTurn ? { scale: 0.95 } : {}}
+                animate={
+                  state.playingNote === 'mi'
+                    ? {
+                        scale: [1, 1.1, 1],
+                        boxShadow: [
+                          '0 4px 8px rgba(74, 144, 226, 0.3)',
+                          '0 8px 16px rgba(74, 144, 226, 0.6)',
+                          '0 4px 8px rgba(74, 144, 226, 0.3)',
+                        ],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.3 }}
+                aria-label="Tocar nota Mi"
+              >
+                <span>🎼</span>
+                <span>Mi</span>
+              </MiButton>
+
+              <FaButton
+                onClick={() => handlePlayerNote('fa')}
+                disabled={!state.isPlayerTurn}
+                whileHover={state.isPlayerTurn ? { scale: 1.05 } : {}}
+                whileTap={state.isPlayerTurn ? { scale: 0.95 } : {}}
+                animate={
+                  state.playingNote === 'fa'
+                    ? {
+                        scale: [1, 1.1, 1],
+                        boxShadow: [
+                          '0 4px 8px rgba(245, 166, 35, 0.3)',
+                          '0 8px 16px rgba(245, 166, 35, 0.6)',
+                          '0 4px 8px rgba(245, 166, 35, 0.3)',
+                        ],
+                      }
+                    : {}
+                }
+                transition={{ duration: 0.3 }}
+                aria-label="Tocar nota Fá"
+              >
+                <span>🟡</span>
+                <span>Fá</span>
+              </FaButton>
+            </ButtonsContainer>
+
+            <ActionButtonsContainer>
+              <ActionButton
+                className="restart"
+                onClick={restartGame}
+                disabled={state.isPlayingSequence}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Reiniciar jogo"
+              >
+                🎮 Reiniciar Jogo
+              </ActionButton>
+            </ActionButtonsContainer>
+          </GameplayArea>
+        </MainLayout>
+      ) : (
+        <MainLayout>
           <InstructionText
-            onClick={() => isTTSEnabled && speakInstruction('Escute a sequência musical e repita tocando as notas na ordem correta! Escolha a dificuldade para começar.')}
+            onClick={() =>
+              isTTSEnabled &&
+              speakInstruction(
+                'Escute a sequência musical e repita tocando as notas na ordem correta! Escolha a dificuldade para começar.'
+              )
+            }
+            role="button"
+            aria-label="Instrução: Escolha a dificuldade"
           >
-            🎵 Escute a sequência musical e repita tocando as notas na ordem correta!<br/>
+            🎵 Escute a sequência musical e repita tocando as notas na ordem correta!
+            <br />
             Escolha a dificuldade para começar.
           </InstructionText>
 
           <DifficultySelector>
             {[
-              {
-                id: 'EASY',
-                name: '🟢 Fácil',
-                description: 'Sequências de 2 notas',
-                icon: '😊'
-              },
-              {
-                id: 'MEDIUM',
-                name: '🟡 Médio',
-                description: 'Sequências de 3 notas',
-                icon: '🤔'
-              },
-              {
-                id: 'HARD',
-                name: '🔴 Difícil',
-                description: 'Sequências de 4 notas',
-                icon: '🧠'
-              }
+              { id: 'EASY', name: '🟢 Fácil', description: 'Sequências de 2 notas', icon: '😊' },
+              { id: 'MEDIUM', name: '🟡 Médio', description: 'Sequências de 3 notas', icon: '🤔' },
+              { id: 'HARD', name: '🔴 Difícil', description: 'Sequências de 4 notas', icon: '🧠' },
             ].map((diff) => (
               <DifficultyButton
                 key={diff.id}
-                isActive={selectedDifficulty === diff.id}
+                isActive={state.difficulty === diff.id}
                 onClick={() => {
-                  setSelectedDifficulty(diff.id);
-                  playClick();
+                  dispatch({ type: 'SET_DIFFICULTY', payload: diff.id })
+                  playClick()
+                  speak(`Dificuldade ${diff.name} selecionada. ${diff.description}`)
                 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 themeColor={THEME_COLOR}
+                aria-label={`Selecionar dificuldade ${diff.name}`}
               >
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>{diff.icon}</div>
                 <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{diff.name}</div>
@@ -806,130 +1508,40 @@ function MusicalSequence({ onBack }) {
               </DifficultyButton>
             ))}
           </DifficultySelector>
-          
+
           <ControlButtons>
             <ActionButton
               onClick={startNewGame}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               themeColor={THEME_COLOR}
+              aria-label="Iniciar jogo musical"
             >
               🎵 Começar Jogo Musical
             </ActionButton>
           </ControlButtons>
-        </>
-      ) : (
-        <>
-          <ButtonsContainer>            <DoButton
-              onClick={() => handlePlayerNote('do')}
-              disabled={!isPlayerTurn}
-              whileHover={isPlayerTurn ? { scale: 1.05 } : {}}
-              whileTap={isPlayerTurn ? { scale: 0.95 } : {}}
-              animate={playingNote === 'do' ? { 
-                scale: [1, 1.1, 1], 
-                boxShadow: [
-                  '0 4px 8px rgba(233, 30, 99, 0.3)',
-                  '0 8px 16px rgba(233, 30, 99, 0.6)',
-                  '0 4px 8px rgba(233, 30, 99, 0.3)'
-                ]
-              } : {}}
-              transition={{ duration: 0.3 }}
-            >
-              <span>🔴</span>
-              <span>Dó</span>
-            </DoButton>
-            
-            <ReButton
-              onClick={() => handlePlayerNote('re')}
-              disabled={!isPlayerTurn}
-              whileHover={isPlayerTurn ? { scale: 1.05 } : {}}
-              whileTap={isPlayerTurn ? { scale: 0.95 } : {}}
-              animate={playingNote === 're' ? { 
-                scale: [1, 1.1, 1], 
-                boxShadow: [
-                  '0 4px 8px rgba(126, 211, 33, 0.3)',
-                  '0 8px 16px rgba(126, 211, 33, 0.6)',
-                  '0 4px 8px rgba(126, 211, 33, 0.3)'
-                ]
-              } : {}}
-              transition={{ duration: 0.3 }}
-            >
-              <span>🟢</span>
-              <span>Ré</span>
-            </ReButton>
-            
-            <MiButton
-              onClick={() => handlePlayerNote('mi')}
-              disabled={!isPlayerTurn}
-              whileHover={isPlayerTurn ? { scale: 1.05 } : {}}
-              whileTap={isPlayerTurn ? { scale: 0.95 } : {}}
-              animate={playingNote === 'mi' ? { 
-                scale: [1, 1.1, 1], 
-                boxShadow: [
-                  '0 4px 8px rgba(74, 144, 226, 0.3)',
-                  '0 8px 16px rgba(74, 144, 226, 0.6)',
-                  '0 4px 8px rgba(74, 144, 226, 0.3)'
-                ]
-              } : {}}
-              transition={{ duration: 0.3 }}
-            >
-              <span>🔵</span>
-              <span>Mi</span>
-            </MiButton>
-              <FaButton
-              onClick={() => handlePlayerNote('fa')}
-              disabled={!isPlayerTurn}
-              whileHover={isPlayerTurn ? { scale: 1.05 } : {}}
-              whileTap={isPlayerTurn ? { scale: 0.95 } : {}}
-              animate={playingNote === 'fa' ? { 
-                scale: [1, 1.1, 1], 
-                boxShadow: [
-                  '0 4px 8px rgba(245, 166, 35, 0.3)',
-                  '0 8px 16px rgba(245, 166, 35, 0.6)',
-                  '0 4px 8px rgba(245, 166, 35, 0.3)'
-                ]
-              } : {}}
-              transition={{ duration: 0.3 }}
-            >
-              <span>🟡</span>
-              <span>Fá</span>
-            </FaButton>
-          </ButtonsContainer>          <ActionButtonsContainer>
-            <ActionButton
-              onClick={playSequence}
-              disabled={isPlayingSequence || !gameStarted}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              🔄 Ouvir Novamente
-            </ActionButton>
-            
-            <ActionButton
-              className="restart"
-              onClick={restartGame}
-              disabled={isPlayingSequence}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              🎮 Reiniciar Jogo
-            </ActionButton>
-          </ActionButtonsContainer>
-        </>
-      )}      <AnimatePresence>
-        {feedback && (
+        </MainLayout>
+      )}
+
+      <AnimatePresence>
+        {state.feedback && (
           <FeedbackMessage
-            className={feedback.type}
+            className={state.feedback.type}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {feedback.message}
+            {state.feedback.message}
           </FeedbackMessage>
         )}
       </AnimatePresence>
     </GameContainer>
   )
+}
+
+MusicalSequence.propTypes = {
+  onBack: PropTypes.func.isRequired,
 }
 
 export default MusicalSequence
