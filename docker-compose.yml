@@ -1,0 +1,133 @@
+services:
+  db:
+    image: postgres:14-alpine
+    container_name: portal-betina-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - betina-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: portal-betina-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      API_PORT: ${API_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS}
+      RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS: ${RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS}
+      ENABLE_COMPRESSION: ${ENABLE_COMPRESSION}
+      ENABLE_CACHE: ${ENABLE_CACHE}
+      CACHE_TTL: ${CACHE_TTL}
+      API_RESPONSE_TIMEOUT: ${API_RESPONSE_TIMEOUT}
+      DATABASE_QUERY_TIMEOUT: ${DATABASE_QUERY_TIMEOUT}
+      SYNC_INTERVAL: ${SYNC_INTERVAL}
+      BATCH_SIZE: ${BATCH_SIZE}
+      API_RETRY_ATTEMPTS: ${API_RETRY_ATTEMPTS}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DEBUG_MODE: ${DEBUG_MODE}
+      ENABLE_METRICS: ${ENABLE_METRICS}
+      CONNECTION_POOL_MIN: ${CONNECTION_POOL_MIN}
+      CONNECTION_POOL_MAX: ${CONNECTION_POOL_MAX}
+      CONNECTION_TIMEOUT: ${CONNECTION_TIMEOUT}
+      IDLE_TIMEOUT: ${IDLE_TIMEOUT}
+      HEALTH_CHECK_ENABLED: ${HEALTH_CHECK_ENABLED}
+      METRICS_COLLECTION_ENABLED: ${METRICS_COLLECTION_ENABLED}
+      PERFORMANCE_MONITORING: ${PERFORMANCE_MONITORING}
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./src/services:/app/src/services
+    networks:
+      - betina-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: portal-betina-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      VITE_API_URL: ${VITE_API_URL}
+      VITE_API_HOST: ${VITE_API_HOST}
+      VITE_API_PORT: ${VITE_API_PORT}
+      VITE_PRODUCTION_API_URL: ${VITE_PRODUCTION_API_URL}
+      VITE_API_TIMEOUT: ${VITE_API_TIMEOUT}
+      VITE_API_RETRY_ATTEMPTS: ${VITE_API_RETRY_ATTEMPTS}
+      VITE_SYNC_INTERVAL: ${VITE_SYNC_INTERVAL}
+      VITE_BATCH_SIZE: ${VITE_BATCH_SIZE}
+      VITE_COMPRESSION_ENABLED: ${VITE_COMPRESSION_ENABLED}
+      VITE_ENCRYPTION_ENABLED: ${VITE_ENCRYPTION_ENABLED}
+      VITE_ENABLE_CACHE: ${VITE_ENABLE_CACHE}
+      VITE_DEBUG_MODE: ${VITE_DEBUG_MODE}
+      VITE_METRICS_INTERVAL: ${VITE_METRICS_INTERVAL}
+      VITE_LOG_LEVEL: ${VITE_LOG_LEVEL}
+      VITE_DB_URL: ${VITE_DB_URL}
+      VITE_VERSION: ${VITE_VERSION}
+      VITE_ENVIRONMENT: ${VITE_ENVIRONMENT}
+      VITE_DEEPSEEK_API_KEY: ${VITE_DEEPSEEK_API_KEY}
+      VITE_DEEPSEEK_API_URL: ${VITE_DEEPSEEK_API_URL}
+      VITE_DEEPSEEK_MODEL: ${VITE_DEEPSEEK_MODEL}
+      VITE_DEEPSEEK_MAX_TOKENS: ${VITE_DEEPSEEK_MAX_TOKENS}
+      VITE_DEEPSEEK_TEMPERATURE: ${VITE_DEEPSEEK_TEMPERATURE}
+      VITE_DEEPSEEK_RETRY_DELAY_MS: ${VITE_DEEPSEEK_RETRY_DELAY_MS}
+      VITE_DEEPSEEK_FALLBACK_ENABLED: ${VITE_DEEPSEEK_FALLBACK_ENABLED}
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./vite.config.js:/app/vite.config.js # Evitar montar node_modules para prevenir problemas de plataforma
+      - /app/node_modules
+    networks:
+      - betina-network
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:alpine
+    container_name: portal-betina-nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      NGINX_WORKER_CONNECTIONS: ${NGINX_WORKER_CONNECTIONS}
+      NGINX_CLIENT_MAX_BODY_SIZE: ${NGINX_CLIENT_MAX_BODY_SIZE}
+      NGINX_KEEPALIVE_TIMEOUT: ${NGINX_KEEPALIVE_TIMEOUT}
+      NGINX_PROXY_READ_TIMEOUT: ${NGINX_PROXY_READ_TIMEOUT}
+      NGINX_PROXY_CONNECT_TIMEOUT: ${NGINX_PROXY_CONNECT_TIMEOUT}
+      NGINX_CACHE_EXPIRES_STATIC: ${NGINX_CACHE_EXPIRES_STATIC}
+      NGINX_CACHE_EXPIRES_MEDIA: ${NGINX_CACHE_EXPIRES_MEDIA}
+    networks:
+      - betina-network
+
+networks:
+  betina-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#667eea">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Portal Betina - Jogos Educacionais</title>
+  <style>
+    :root {
+      /* Cores principais */
+      --primary-blue: #0066cc;
+      --primary-purple: #8b5cf6;
+      --primary-pink: #ec4899;
+      --primary-orange: #f59e0b;
+      --primary-green: #10b981;
+      --primary-cyan: #06b6d4;
+      --primary-red: #ef4444;
+      --dark-gray: #374151;
+      --medium-gray: #6b7280;
+      --light-gray: #e5e7eb;
+      --bg-white: #ffffff;
+      --bg-light: #f8fafc;
+      
+      /* Tipografia responsiva ainda mais refinada */
+      --font-xs: clamp(0.813rem, 2.5vw, 0.938rem);
+      --font-sm: clamp(0.938rem, 2.8vw, 1.063rem);
+      --font-md: clamp(1.063rem, 3.2vw, 1.188rem);
+      --font-lg: clamp(1.188rem, 3.5vw, 1.313rem);
+      --font-xl: clamp(1.375rem, 4vw, 1.625rem);
+      
+      /* Espaçamentos responsivos */
+      --space-2xs: clamp(0.25rem, 1vw, 0.375rem);
+      --space-xs: clamp(0.5rem, 1.5vw, 0.625rem);
+      --space-sm: clamp(0.75rem, 2vw, 0.875rem);
+      --space-md: clamp(1rem, 3vw, 1.25rem);
+      --space-lg: clamp(1.5rem, 4vw, 1.75rem);
+      
+      /* Bordas e sombras */
+      --radius-sm: 0.625rem;
+      --radius-md: 0.875rem;
+      --radius-lg: 1.125rem;
+      --shadow-soft: 0 2px 8px rgba(0,0,0,0.07);
+      --shadow-medium: 0 4px 12px rgba(0,0,0,0.1);
+      
+      /* Transições suaves */
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      /* Altura mínima para touch targets */
+      --touch-target: max(44px, 2.75rem);
+      
+      /* Container máximos */
+      --container-sm: 540px;
+      --container-md: 720px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      height: 100dvh;
+      width: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-attachment: fixed;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+    }
+
+    /* Header otimizado */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(102, 126, 234, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: env(safe-area-inset-top, 0) var(--space-xs) var(--space-xs);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      width: 100%;
+      max-width: var(--container-md);
+      margin: 0 auto;
+      padding: 0 var(--space-xs);
+    }
+
+    .back-button {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-sm);
+      padding: var(--space-xs) var(--space-sm);
+      font-size: var(--font-sm);
+      font-weight: 600;
+      cursor: pointer;
+      height: var(--touch-target);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      transition: var(--transition-normal);
+    }
+
+    .back-button:active {
+      background: rgba(255, 255, 255, 0.25);
+      transform: scale(0.98);
+    }
+
+    .game-selector {
+      position: relative;
+      min-width: 140px;
+    }
+
+    .game-selector select {
+      width: 100%;
+      background: white;
+      color: var(--primary-blue);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: var(--radius-sm);
+      padding: var(--space-xs) var(--space-sm);
+      font-size: var(--font-sm);
+      font-weight: 600;
+      cursor: pointer;
+      height: var(--touch-target);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230066cc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right var(--space-sm) center;
+      padding-right: 2.5rem;
+    }
+
+    /* Container principal com altura ajustável */
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: var(--container-md);
+      margin: 0 auto;
+      background: var(--bg-white);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      box-shadow: var(--shadow-medium);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Scroll container melhorado */
+    .content-scroll {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--medium-gray) var(--bg-light);
+      -webkit-overflow-scrolling: touch;
+      padding: var(--space-md) var(--space-md) calc(var(--space-lg) + env(safe-area-inset-bottom, 0));
+    }
+
+    .content-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .content-scroll::-webkit-scrollbar-track {
+      background: var(--bg-light);
+    }
+
+    .content-scroll::-webkit-scrollbar-thumb {
+      background-color: var(--medium-gray);
+      border-radius: 10px;
+    }
+
+    /* Botão TTS flutuante mais acessível */
+    .tts-button {
+      position: absolute;
+      top: var(--space-md);
+      right: var(--space-md);
+      width: 48px;
+      height: 48px;
+      background: var(--primary-green);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      transition: var(--transition-normal);
+      z-index: 10;
+    }
+
+    .tts-button:active {
+      transform: scale(0.95);
+      background: #0ea567;
+    }
+
+    /* Seção do título mais compacta */
+    .title-section {
+      text-align: center;
+      margin-bottom: var(--space-md);
+      padding: 0 var(--space-md);
+    }
+
+    .main-title {
+      font-size: var(--font-xl);
+      color: var(--primary-blue);
+      font-weight: 700;
+      margin-bottom: var(--space-2xs);
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      color: var(--primary-purple);
+      font-size: var(--font-xs);
+      opacity: 0.8;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    /* Instrução mais visível */
+    .instruction-card {
+      background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+      color: white;
+      padding: var(--space-md);
+      border-radius: var(--radius-md);
+      text-align: center;
+      font-size: var(--font-sm);
+      font-weight: 500;
+      line-height: 1.5;
+      margin-bottom: var(--space-md);
+      box-shadow: var(--shadow-soft);
+    }
+
+    /* Seletor de dificuldade otimizado */
+    .difficulty-section {
+      margin-bottom: var(--space-md);
+    }
+
+    .difficulty-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .difficulty-option {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      background: var(--bg-light);
+      border: 2px solid var(--light-gray);
+      border-radius: var(--radius-md);
+      padding: var(--space-sm) var(--space-md);
+      cursor: pointer;
+      transition: var(--transition-normal);
+      min-height: var(--touch-target);
+      position: relative;
+    }
+
+    .difficulty-option:active {
+      transform: scale(0.98);
+    }
+
+    .difficulty-option.easy {
+      border-color: var(--primary-green);
+    }
+
+    .difficulty-option.medium {
+      border-color: var(--primary-orange);
+    }
+
+    .difficulty-option.hard {
+      border-color: var(--primary-red);
+    }
+
+    .difficulty-option.active {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+      color: white;
+      border-color: transparent;
+      box-shadow: var(--shadow-medium);
+    }
+
+    .difficulty-option.easy.active {
+      background: linear-gradient(135deg, var(--primary-green), var(--primary-cyan));
+    }
+
+    .difficulty-option.medium.active {
+      background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+    }
+
+    .difficulty-option.hard.active {
+      background: linear-gradient(135deg, var(--primary-red), var(--primary-purple));
+    }
+
+    .difficulty-icon {
+      font-size: var(--font-lg);
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .difficulty-info {
+      flex: 1;
+    }
+
+    .difficulty-title {
+      font-size: var(--font-md);
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .difficulty-description {
+      font-size: var(--font-xs);
+      opacity: 0.8;
+      line-height: 1.3;
+    }
+
+    /* Indicador de dificuldade selecionada melhorado */
+    .selected-indicator {
+      text-align: center;
+      font-size: var(--font-lg);
+      margin-bottom: var(--space-md);
+      min-height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-blue);
+    }
+
+    /* Configurações mais organizadas */
+    .settings-section {
+      background: var(--bg-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .settings-title {
+      font-size: var(--font-sm);
+      font-weight: 600;
+      color: var(--dark-gray);
+      margin-bottom: var(--space-sm);
+      text-align: center;
+    }
+
+    .settings-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-xs) 0;
+    }
+
+    .setting-label {
+      font-size: var(--font-sm);
+      color: var(--dark-gray);
+      font-weight: 500;
+    }
+
+    /* Toggles mais interativos */
+    .toggle-switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      background: var(--light-gray);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: var(--transition-normal);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .toggle-switch.active {
+      background: var(--primary-green);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: var(--transition-normal);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(24px);
+    }
+
+    /* Botões de ação mais visíveis */
+    .action-section {
+      margin-bottom: var(--space-md);
+    }
+
+    .primary-button {
+      width: 100%;
+      min-height: var(--touch-target);
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: var(--font-md);
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-normal);
+      box-shadow: var(--shadow-medium);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: var(--space-xs) var(--space-md);
+    }
+
+    .primary-button:disabled {
+      background: var(--medium-gray);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .primary-button:not(:disabled):active {
+      transform: translateY(1px);
+    }
+
+    /* Seção inferior melhorada */
+    .bottom-section {
+      margin-top: auto;
+      padding-top: var(--space-md);
+    }
+
+    .secondary-button {
+      width: 100%;
+      min-height: var(--touch-target);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--primary-blue);
+      border: 2px solid var(--primary-blue);
+      border-radius: var(--radius-md);
+      font-size: var(--font-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-normal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .secondary-button:active {
+      background: var(--primary-blue);
+      color: white;
+    }
+
+    /* Notificações melhoradas */
+    .notification {
+      position: fixed;
+      bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0));
+      left: 50%;
+      transform: translate(-50%, 100%);
+      min-width: 200px;
+      max-width: 85vw;
+      background: var(--dark-gray);
+      color: white;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-md);
+      font-size: var(--font-sm);
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      transition: var(--transition-normal);
+      animation: none;
+    }
+
+    .notification.show {
+      transform: translate(-50%, 0);
+    }
+
+    .notification.success { background: var(--primary-green); }
+    .notification.error { background: var(--primary-red); }
+    .notification.info { background: var(--primary-blue); }
+    .notification.accessibility { background: var(--primary-purple); }
+
+    /* Tema específico para cada jogo */
+    .theme-letters .instruction-card {
+      background: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+    }
+
+    .theme-music .instruction-card {
+      background: linear-gradient(135deg, var(--primary-purple), var(--primary-blue));
+    }
+
+    .theme-numbers .instruction-card {
+      background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+    }
+
+    .theme-painting .instruction-card {
+      background: linear-gradient(135deg, var(--primary-pink), var(--primary-orange));
+    }
+
+    .theme-memory .instruction-card {
+      background: linear-gradient(135deg, var(--primary-orange), var(--primary-red));
+    }
+
+    .theme-patterns .instruction-card {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
+    }
+
+    /* Melhorias para mobile */
+    @media (max-width: 480px) {
+      :root {
+        --container-sm: 100%;
+      }
+      
+      .content-scroll {
+        padding: var(--space-sm);
+        padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0));
+      }
+      
+      .difficulty-option {
+        padding: var(--space-xs) var(--space-sm);
+      }
+      
+      .tts-button {
+        top: var(--space-sm);
+        right: var(--space-sm);
+        width: 42px;
+        height: 42px;
+      }
+      
+      .title-section {
+        padding: 0;
+      }
+      
+      .main-title {
+        font-size: 1.25rem;
+      }
+      
+      .instruction-card {
+        padding: var(--space-sm);
+      }
+    }
+
+    /* Melhorias para tablet vertical */
+    @media (min-width: 481px) and (max-width: 834px) and (orientation: portrait) {
+      .main-container {
+        max-width: 85%;
+        margin: 0 auto;
+        border-radius: var(--radius-lg);
+      }
+      
+      .content-scroll {
+        padding: var(--space-lg);
+        padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0));
+      }
+      
+      /* Layout em grade para tablets */
+      .settings-section {
+        padding: var(--space-lg);
+      }
+      
+      .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+      }
+      
+      /* Melhor aproveitamento do espaço */
+      .control-panel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+      }
+      
+      .button-group {
+        display: flex;
+        gap: var(--space-md);
+      }
+      
+      .button-group .primary-button, 
+      .button-group .secondary-button {
+        flex: 1;
+      }
+    }
+
+    /* Tablets em modo retrato grandes */
+    @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+      .difficulty-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-md);
+      }
+      
+      .difficulty-option {
+        flex-direction: column;
+        text-align: center;
+        height: auto;
+        padding: var(--space-md);
+        min-height: 180px;
+        justify-content: center;
+      }
+      
+      .difficulty-icon {
+        font-size: 2.5rem;
+        margin-bottom: var(--space-xs);
+      }
+      
+      .difficulty-info {
+        text-align: center;
+      }
+    }
+
+    /* Dispositivos com notch */
+    @supports (padding: max(0px)) {
+      .app-header {
+        padding-left: max(var(--space-xs), env(safe-area-inset-left));
+        padding-right: max(var(--space-xs), env(safe-area-inset-right));
+        padding-top: max(var(--space-xs), env(safe-area-inset-top));
+      }
+      
+      .content-scroll {
+        padding-left: max(var(--space-md), env(safe-area-inset-left));
+        padding-right: max(var(--space-md), env(safe-area-inset-right));
+        padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom) + var(--space-md));
+      }
+    }
+
+    /* Animações otimizadas */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeInUp 0.4s ease-out;
+    }
+
+    /* Acessibilidade */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Estados de foco para acessibilidade */
+    .back-button:focus-visible,
+    .game-selector select:focus-visible,
+    .difficulty-option:focus-visible,
+    .primary-button:focus-visible,
+    .secondary-button:focus-visible,
+    .tts-button:focus-visible,
+    .toggle-switch:focus-visible {
+      outline: 3px solid var(--primary-cyan);
+      outline-offset: 2px;
+    }
+
+    /* Reduzir animações para usuários que preferem */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header fixo -->
+  <header class="app-header">
+    <div class="header-content">
+      <button class="back-button" onclick="goBack()" aria-label="Voltar ao menu principal">
+        <span aria-hidden="true">←</span>
+        <span>Voltar</span>
+      </button>
+      
+      <div class="game-selector">
+        <label for="game-select" class="visually-hidden">Selecionar jogo</label>
+        <select id="game-select" onchange="changeGame(this.value)" aria-label="Selecionar jogo">
+          <option value="letters">🔤 Letras</option>
+          <option value="music">🎵 Música</option>
+          <option value="numbers">🔢 Números</option>
+          <option value="painting">🎨 Pintura</option>
+          <option value="memory">🧠 Memória</option>
+          <option value="patterns">🔷 Padrões</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Container principal -->
+  <main class="main-container theme-letters" id="gameContainer">
+    <!-- Botão TTS flutuante -->
+    <button class="tts-button" onclick="toggleTTS()" aria-label="Ativar ou desativar narração">
+      <span aria-hidden="true">🔊</span>
+    </button>
+
+    <!-- Conteúdo com scroll -->
+    <div class="content-scroll">
+      <!-- Título do jogo -->
+      <section class="title-section">
+        <h1 class="main-title">🔤 Reconhecimento de Letras</h1>
+        <p class="subtitle">Aprenda o alfabeto de forma divertida e interativa</p>
+      </section>
+
+      <!-- Instrução -->
+      <div class="instruction-card" role="region" aria-label="Instruções">
+        🎯 Escolha o nível de dificuldade para começar sua aventura com as letras!
+      </div>
+
+      <!-- Seleção de dificuldade -->
+      <section class="difficulty-section fade-in" aria-labelledby="difficulty-heading">
+        <h2 id="difficulty-heading" class="visually-hidden">Escolha de dificuldade</h2>
+        <div class="difficulty-grid">
+          <button class="difficulty-option easy" onclick="selectDifficulty('easy')" data-difficulty="easy" aria-label="Selecionar nível fácil">
+            <span class="difficulty-icon" aria-hidden="true">😊</span>
+            <div class="difficulty-info">
+              <div class="difficulty-title">Fácil</div>
+              <div class="difficulty-description">5 letras simples - A, E, I, O, U</div>
+            </div>
+          </button>
+
+          <button class="difficulty-option medium" onclick="selectDifficulty('medium')" data-difficulty="medium" aria-label="Selecionar nível médio">
+            <span class="difficulty-icon" aria-hidden="true">🤔</span>
+            <div class="difficulty-info">
+              <div class="difficulty-title">Médio</div>
+              <div class="difficulty-description">10 letras variadas - Vogais + consoantes</div>
+            </div>
+          </button>
+
+          <button class="difficulty-option hard" onclick="selectDifficulty('hard')" data-difficulty="hard" aria-label="Selecionar nível difícil">
+            <span class="difficulty-icon" aria-hidden="true">🚀</span>
+            <div class="difficulty-info">
+              <div class="difficulty-title">Difícil</div>
+              <div class="difficulty-description">Todo o alfabeto - 26 letras completas</div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Indicador de dificuldade selecionada -->
+      <div class="selected-indicator" id="difficultyIndicator" aria-live="polite"></div>
+
+      <!-- Configurações -->
+      <section class="settings-section" aria-labelledby="settings-heading">
+        <h2 id="settings-heading" class="settings-title">⚙️ Configurações</h2>
+        <div class="settings-grid">
+          <div class="setting-row">
+            <span class="setting-label">🔊 Narração/Som</span>
+            <div class="toggle-switch active" onclick="toggleSetting(this, 'tts')" role="switch" aria-checked="true" aria-label="Ativar ou desativar narração" tabindex="0"></div>
+          </div>
+          
+          <div class="setting-row">
+            <span class="setting-label">⏱️ Cronômetro</span>
+            <div class="toggle-switch" onclick="toggleSetting(this, 'timer')" role="switch" aria-checked="false" aria-label="Ativar ou desativar cronômetro" tabindex="0"></div>
+          </div>
+          
+          <div class="setting-row">
+            <span class="setting-label">💡 Dicas visuais</span>
+            <div class="toggle-switch active" onclick="toggleSetting(this, 'hints')" role="switch" aria-checked="true" aria-label="Ativar ou desativar dicas visuais" tabindex="0"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Controles -->
+      <div class="control-panel">
+        <!-- Botão principal -->
+        <section class="action-section">
+          <button class="primary-button" onclick="startGame()" id="startButton" disabled aria-label="Iniciar o jogo">
+            <span aria-hidden="true">🚀</span>
+            <span>Começar Jogo</span>
+          </button>
+        </section>
+
+        <!-- Seção inferior -->
+        <section class="bottom-section">
+          <div class="button-group">
+            <button class="secondary-button" onclick="goBack()" aria-label="Voltar ao menu principal">
+              <span aria-hidden="true">←</span> Voltar ao Menu
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Dados dos jogos
+    const GAMES_DATA = {
+      letters: {
+        title: '🔤 Reconhecimento de Letras',
+        subtitle: 'Aprenda o alfabeto de forma divertida e interativa',
+        instruction: '🎯 Escolha o nível de dificuldade para começar sua aventura com as letras!',
+        theme: 'theme-letters',
+        difficulties: {
+          easy: { icon: '😊', title: 'Fácil', desc: '5 letras simples - A, E, I, O, U' },
+          medium: { icon: '🤔', title: 'Médio', desc: '10 letras variadas - Vogais + consoantes' },
+          hard: { icon: '🚀', title: 'Difícil', desc: 'Todo o alfabeto - 26 letras completas' }
+        }
+      },
+      music: {
+        title: '🎵 Sequência Musical',
+        subtitle: 'Memorize e reproduza sequências musicais',
+        instruction: '🎧 Escute com atenção e repita as sequências de sons!',
+        theme: 'theme-music',
+        difficulties: {
+          easy: { icon: '😊', title: 'Fácil', desc: '3 sons simples - Sequências curtas' },
+          medium: { icon: '🤔', title: 'Médio', desc: '5 sons variados - Sequências médias' },
+          hard: { icon: '🚀', title: 'Difícil', desc: '8 sons complexos - Sequências longas' }
+        }
+      },
+      numbers: {
+        title: '🔢 Números e Contagem',
+        subtitle: 'Aprenda números de 1 a 10 com atividades interativas',
+        instruction: '🔢 Vamos contar juntos! Escolha sua dificuldade favorita!',
+        theme: 'theme-numbers',
+        difficulties: {
+          easy: { icon: '😊', title: 'Fácil', desc: 'Números 1 a 5 - Contagem básica' },
+          medium: { icon: '🤔', title: 'Médio', desc: 'Números 1 a 10 - Somas simples' },
+          hard: { icon: '🚀', title: 'Difícil', desc: 'Números até 20 - Operações básicas' }
+        }
+      },
+      painting: {
+        title: '🎨 Pintura Criativa',
+        subtitle: 'Desenvolva criatividade através da pintura digital',
+        instruction: '🎨 Hora de criar arte! Escolha como quer pintar hoje!',
+        theme: 'theme-painting',
+        difficulties: {
+          easy: { icon: '😊', title: 'Livre', desc: 'Pintura livre - Sem limites' },
+          medium: { icon: '🤔', title: 'Guiada', desc: 'Com moldes - Cores sugeridas' },
+          hard: { icon: '🚀', title: 'Desafio', desc: 'Recriar obras - Precisão artística' }
+        }
+      },
+      memory: {
+        title: '🧠 Jogo da Memória',
+        subtitle: 'Exercite a memória de forma divertida',
+        instruction: '🃏 Encontre os pares! Teste sua memória visual!',
+        theme: 'theme-memory',
+        difficulties: {
+          easy: { icon: '😊', title: 'Fácil', desc: '6 cartas (3 pares) - Imagens simples' },
+          medium: { icon: '🤔', title: 'Médio', desc: '12 cartas (6 pares) - Mais variedade' },
+          hard: { icon: '🚀', title: 'Difícil', desc: '20 cartas (10 pares) - Desafio total' }
+        }
+      },
+      patterns: {
+        title: '🔷 Padrões Visuais',
+        subtitle: 'Complete sequências de formas e cores',
+        instruction: '🧩 Descubra o padrão! Complete as sequências lógicas!',
+        theme: 'theme-patterns',
+        difficulties: {
+          easy: { icon: '😊', title: 'Fácil', desc: 'Padrões simples - 2-3 elementos' },
+          medium: { icon: '🤔', title: 'Médio', desc: 'Padrões médios - 4-5 elementos' },
+          hard: { icon: '🚀', title: 'Difícil', desc: 'Padrões complexos - 6+ elementos' }
+        }
+      }
+    };
+
+    // Estado da aplicação
+    let selectedDifficulty = null;
+    let gameSettings = {
+      tts: true,
+      timer: false,
+      hints: true
+    };
+
+    // Debounce para evitar cliques múltiplos
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // Função para mostrar notificações
+    function showNotification(message, type = 'info') {
+      // Remove notificação anterior
+      const existing = document.querySelector('.notification');
+      if (existing) {
+        existing.remove();
+      }
+
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.setAttribute('role', 'alert');
+      notification.textContent = message;
+      document.body.appendChild(notification);
+
+      // Mostra a notificação
+      setTimeout(() => notification.classList.add('show'), 100);
+
+      // Remove a notificação
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    // Função para alterar o jogo
+    function changeGame(gameType) {
+      const game = GAMES_DATA[gameType];
+      if (!game) return;
+
+      const container = document.getElementById('gameContainer');
+      container.className = `main-container ${game.theme}`;
+
+      // Atualiza título e subtítulo
+      document.querySelector('.main-title').textContent = game.title;
+      document.querySelector('.subtitle').textContent = game.subtitle;
+      document.querySelector('.instruction-card').textContent = game.instruction;
+
+      // Atualiza opções de dificuldade
+      const difficulties = ['easy', 'medium', 'hard'];
+      document.querySelectorAll('.difficulty-option').forEach((button, index) => {
+        const difficulty = difficulties[index];
+        const diffData = game.difficulties[difficulty];
+        
+        button.classList.remove('active');
+        button.querySelector('.difficulty-icon').textContent = diffData.icon;
+        button.querySelector('.difficulty-title').textContent = diffData.title;
+        button.querySelector('.difficulty-description').textContent = diffData.desc;
+      });
+
+      // Reset estado
+      selectedDifficulty = null;
+      document.getElementById('startButton').disabled = true;
+      document.getElementById('difficultyIndicator').textContent = '';
+
+      showNotification(`Jogo alterado para: ${game.title.replace(/🔤|🎵|🔢|🎨|🧠|🔷/g, '').trim()}`, 'info');
+    }
+
+    // Função para selecionar dificuldade
+    function selectDifficulty(difficulty) {
+      // Remove seleção anterior
+      document.querySelectorAll('.difficulty-option').forEach(btn => 
+        btn.classList.remove('active')
+      );
+
+      // Adiciona seleção atual
+      const button = document.querySelector(`[data-difficulty="${difficulty}"]`);
+      button.classList.add('active');
+
+      selectedDifficulty = difficulty;
+      document.getElementById('startButton').disabled = false;
+
+      // Atualiza indicador
+      const icon = button.querySelector('.difficulty-icon').textContent;
+      const title = button.querySelector('.difficulty-title').textContent;
+      document.getElementById('difficultyIndicator').textContent = `${icon} ${title} selecionado`;
+
+      showNotification(`Dificuldade selecionada: ${title}`, 'success');
+    }
+
+    // Função para alternar configurações
+    function toggleSetting(toggle, settingName) {
+      toggle.classList.toggle('active');
+      const isActive = toggle.classList.contains('active');
+      toggle.setAttribute('aria-checked', isActive);
+      
+      gameSettings[settingName] = isActive;
+      
+      const settingLabel = toggle.previousElementSibling.textContent;
+      showNotification(`${settingLabel} ${isActive ? 'ativado' : 'desativado'}`, 'info');
+
+      // Lógica específica para TTS
+      if (settingName === 'tts') {
+        handleTTSToggle(isActive);
+      }
+    }
+
+    // Suporte a navegação por teclado para toggles
+    document.addEventListener('keydown', function(e) {
+      const activeElement = document.activeElement;
+      if (activeElement && activeElement.classList.contains('toggle-switch')) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          const setting = activeElement.previousElementSibling.textContent.includes('TTS') ? 'tts' : 
+                         activeElement.previousElementSibling.textContent.includes('Cronômetro') ? 'timer' : 'hints';
+          toggleSetting(activeElement, setting);
+        }
+      }
+    });
+
+    // Função para lidar com TTS
+    function handleTTSToggle(enabled) {
+      // Aqui você implementaria a lógica de TTS
+      console.log('TTS', enabled ? 'ativado' : 'desativado');
+    }
+
+    // Função do botão TTS
+    const toggleTTS = debounce(() => {
+      const ttsToggle = document.querySelector('[role="switch"][aria-label*="narração"]');
+      toggleSetting(ttsToggle, 'tts');
+    }, 300);
+
+    // Função para iniciar o jogo
+    const startGame = debounce(() => {
+      if (!selectedDifficulty) {
+        showNotification('Selecione uma dificuldade primeiro!', 'error');
+        return;
+      }
+
+      showNotification('Iniciando jogo...', 'success');
+      
+      // Aqui você implementaria a lógica para iniciar o jogo
+      setTimeout(() => {
+        const difficulty = document.querySelector(`[data-difficulty="${selectedDifficulty}"] .difficulty-title`).textContent;
+        alert(`Iniciando jogo na dificuldade: ${difficulty}`);
+      }, 1000);
+    }, 300);
+
+    // Função para voltar
+    const goBack = debounce(() => {
+      showNotification('Voltando ao menu principal...', 'info');
+      
+      setTimeout(() => {
+        // Aqui você implementaria a navegação de volta
+        alert('Voltando ao menu principal');
+      }, 800);
+    }, 300);
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', () => {
+      // Adiciona animação aos elementos
+      const animatedElements = document.querySelectorAll('.fade-in');
+      animatedElements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+      });
+
+      // Detecta tipo de dispositivo para otimizações
+      const isMobile = window.innerWidth <= 480;
+      const isTablet = window.innerWidth > 480 && window.innerWidth <= 1024;
+      
+      // Ajustes específicos baseados no dispositivo
+      if (isTablet) {
+        document.documentElement.classList.add('tablet-view');
+      } else if (isMobile) {
+        document.documentElement.classList.add('mobile-view');
+      }
+
+      showNotification('Portal Betina carregado! Selecione uma dificuldade para jogar! 🎮', 'success');
+
+      // Previne zoom em inputs em iOS
+      document.addEventListener('touchstart', function(){}, true);
+    });
+
+    // Prevenção de comportamentos indesejados
+    document.addEventListener('gesturestart', e => e.preventDefault());
+    document.addEventListener('gesturechange', e => e.preventDefault());
+  </script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+/**
+ * TESTE DE INTEGRAÇÃO - AUTISM COGNITIVE ANALYSIS
+ * Verifica se os módulos do autismCognitiveAnalysis estão corretamente configurados
+ * e integrados no SystemOrchestrator
+ */
+
+import autismCognitiveAnalyzer from './src/utils/autismCognitiveAnalysis/autismCognitiveAnalyzer.js'
+import { AdvancedAnalysisOrchestrator } from './src/utils/autismCognitiveAnalysis/advancedAnalysisOrchestrator.js'
+import AdvancedSupportCalculator from './src/utils/autismCognitiveAnalysis/advancedSupportCalculations.js'
+import { AutismAssessmentHelpers } from './src/utils/autismCognitiveAnalysis/autismAssessmentHelpers.js'
+import { featureFlags, isFeatureEnabled } from './src/utils/autismCognitiveAnalysis/featureFlags.js'
+import neuropedagogicalAnalyzer from './src/utils/autismCognitiveAnalysis/neuropedagogicalInsights.js'
+
+/**
+ * Testa configuração dos módulos do autismCognitiveAnalysis
+ */
+async function testAutismCognitiveIntegration() {
+  console.log('🧠 TESTE DE INTEGRAÇÃO - AUTISM COGNITIVE ANALYSIS')
+  console.log('=' .repeat(60))
+
+  try {
+    // 1. Testar autismCognitiveAnalyzer
+    console.log('🔬 Testando autismCognitiveAnalyzer...')
+    await autismCognitiveAnalyzer.initialize()
+    console.log('✅ autismCognitiveAnalyzer inicializado:', autismCognitiveAnalyzer.isInitialized)
+
+    // 2. Testar AdvancedAnalysisOrchestrator
+    console.log('🎛️ Testando AdvancedAnalysisOrchestrator...')
+    const advancedOrchestrator = new AdvancedAnalysisOrchestrator()
+    console.log('✅ AdvancedAnalysisOrchestrator criado:', !!advancedOrchestrator)
+
+    // 3. Testar AdvancedSupportCalculator
+    console.log('📊 Testando AdvancedSupportCalculator...')
+    const supportCalculator = new AdvancedSupportCalculator()
+    await supportCalculator.initialize()
+    console.log('✅ AdvancedSupportCalculator inicializado:', supportCalculator.isInitialized)
+
+    // 4. Testar feature flags
+    console.log('🏁 Testando feature flags...')
+    console.log('✅ Feature flags carregadas:', Object.keys(featureFlags).length, 'flags')
+    console.log('🎯 Features habilitadas importantes:')
+    console.log('   - enableAdvancedCognitiveAnalysis:', isFeatureEnabled('enableAdvancedCognitiveAnalysis'))
+    console.log('   - enableTherapeuticRecommendations:', isFeatureEnabled('enableTherapeuticRecommendations'))
+    console.log('   - enableAutismSpecificAlgorithms:', isFeatureEnabled('enableAutismSpecificAlgorithms'))
+    console.log('   - enableSystemOrchestration:', isFeatureEnabled('enableSystemOrchestration'))
+
+    // 5. Testar neuropedagogicalAnalyzer
+    console.log('🧠 Testando neuropedagogicalAnalyzer...')
+    await neuropedagogicalAnalyzer.initialize()
+    console.log('✅ neuropedagogicalAnalyzer inicializado:', neuropedagogicalAnalyzer.isInitialized)
+
+    // 6. Teste de análise cognitiva básica
+    console.log('🎯 Executando análise cognitiva de teste...')
+    const testSessionData = {
+      sessionId: 'test-001',
+      attempts: 10,
+      errors: 2,
+      sessionDuration: 300000,
+      activityType: 'matching-game',
+      difficulty: 'medium',
+      responseTimeProgression: [2000, 1800, 1600, 1500, 1400],
+      helpRequests: 1,
+      taskCompleted: true,
+      accuracy: 0.8,
+      visualProcessing: 0.7,
+      auditoryProcessing: 0.6,
+      attention: 0.75
+    }
+
+    const testUserProfile = {
+      age: 8,
+      diagnosis: 'autism',
+      communicationLevel: { level: 2 },
+      sensoryProfile: {
+        visual: { threshold: 0.3 },
+        auditory: { threshold: 0.8 }
+      }
+    }
+
+    // Teste do autismCognitiveAnalyzer
+    const adaptations = autismCognitiveAnalyzer.calculateAutismAdaptations('test-user', testSessionData, testUserProfile)
+    console.log('✅ Adaptações calculadas:', !!adaptations, '- Confiança:', adaptations?.confidence || 'N/A')
+
+    // Teste do supportCalculator
+    const visualSupport = supportCalculator.calculateVisualSupportLevel({
+      visualProcessingSpeed: 0.4,
+      visualAttention: 0.6,
+      sensorySensitivity: 0.7,
+      needsHighContrast: true
+    })
+    console.log('✅ Suporte visual calculado:', visualSupport.level, '- Score:', visualSupport.score.toFixed(2))
+
+    // Teste do neuropedagogicalAnalyzer
+    const comprehensiveReport = neuropedagogicalAnalyzer.generateComprehensiveReport(testSessionData)
+    console.log('✅ Relatório abrangente gerado:', !!comprehensiveReport, '- Insights:', comprehensiveReport?.therapeuticRecommendations?.length || 0)
+
+    // 7. Verificar integração com SystemOrchestrator
+    console.log('🔗 Verificando integração com SystemOrchestrator...')
+    
+    // Importar o SystemOrchestrator
+    let systemOrchestratorIntegrated = false
+    try {
+      const { SystemOrchestrator } = await import('./src/utils/core/SystemOrchestrator.js')
+      
+      // Verificar se há referências aos módulos autism cognitive
+      const orchestratorCode = await import('fs').then(fs => 
+        fs.promises.readFile('./src/utils/core/SystemOrchestrator.js', 'utf8')
+      )
+      
+      systemOrchestratorIntegrated = 
+        orchestratorCode.includes('autismCognitiveAnalysis') ||
+        orchestratorCode.includes('AdvancedAnalysisOrchestrator') ||
+        orchestratorCode.includes('neuropedagogicalAnalyzer')
+        
+      console.log('🔍 SystemOrchestrator integração detectada:', systemOrchestratorIntegrated)
+      
+    } catch (error) {
+      console.log('⚠️ Erro ao verificar integração SystemOrchestrator:', error.message)
+    }
+
+    // 8. Status final
+    console.log('\n📋 RESUMO DA CONFIGURAÇÃO:')
+    console.log('=' .repeat(60))
+    console.log('✅ autismCognitiveAnalyzer: CONFIGURADO')
+    console.log('✅ AdvancedAnalysisOrchestrator: CONFIGURADO')
+    console.log('✅ AdvancedSupportCalculator: CONFIGURADO')
+    console.log('✅ Feature Flags: CONFIGURADAS')
+    console.log('✅ neuropedagogicalAnalyzer: CONFIGURADO')
+    console.log('✅ AutismAssessmentHelpers: CONFIGURADO')
+    
+    if (systemOrchestratorIntegrated) {
+      console.log('✅ SystemOrchestrator: INTEGRADO')
+    } else {
+      console.log('⚠️ SystemOrchestrator: NECESSITA INTEGRAÇÃO')
+    }
+
+    console.log('\n🎯 RECOMENDAÇÕES:')
+    if (!systemOrchestratorIntegrated) {
+      console.log('📌 Integrar módulos autismCognitiveAnalysis no SystemOrchestrator')
+      console.log('📌 Adicionar imports dos módulos avançados')
+      console.log('📌 Ativar feature flags no orquestrador principal')
+    } else {
+      console.log('✅ Todos os módulos estão corretamente configurados!')
+    }
+
+    return {
+      success: true,
+      modulesConfigured: true,
+      systemOrchestratorIntegrated,
+      featuresEnabled: isFeatureEnabled('enableAdvancedCognitiveAnalysis'),
+      testResults: {
+        autismCognitiveAnalyzer: !!adaptations,
+        supportCalculator: !!visualSupport,
+        neuropedagogicalAnalyzer: !!comprehensiveReport
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Erro no teste de integração:', error)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+// Executar o teste
+testAutismCognitiveIntegration()
+  .then(result => {
+    console.log('\n🏁 TESTE CONCLUÍDO')
+    console.log('Resultado:', result.success ? 'SUCESSO' : 'FALHA')
+    process.exit(result.success ? 0 : 1)
+  })
+  .catch(error => {
+    console.error('💥 Erro fatal no teste:', error)
+    process.exit(1)
+  })

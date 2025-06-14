@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Betina - Preview da Página Principal</title>
+    <style>        /* CSS Variables - Sistema de Design */
+        :root {
+            --primary-blue: #0066cc;
+            --primary-purple: #8b5cf6;
+            --primary-pink: #ec4899;
+            --primary-orange: #f59e0b;
+            --primary-green: #10b981;
+            --primary-cyan: #06b6d4;
+            --primary-red: #ef4444;
+            --primary-blue-light: #e0f7ff;
+            --dark-blue: #0a2463;
+            --dark-gray: #374151;
+            --medium-gray: #6b7280;
+            --light-gray: #e5e7eb;
+            
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-md: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.5rem;
+            --font-size-xxl: 2rem;
+            
+            --space-xs: 0.5rem;
+            --space-sm: 0.75rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-xxl: 3rem;
+            --space-xxxs: 0.25rem;
+            --space-xxs: 0.375rem;
+            
+            --radius-small: 0.25rem;
+            --radius-medium: 0.5rem;
+            --radius-large: 1rem;
+            --radius-xl: 1.5rem;
+            
+            --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-strong: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --shadow-small: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-glow: 0 0 20px rgba(0, 102, 204, 0.3);
+            
+            --transition-normal: 0.3s ease;
+            --transition-fast: 0.2s ease;
+            --transition-slow: 0.5s ease;
+        }
+
+        /* Reset e Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding-bottom: 65px; /* Espaço otimizado para o footer */
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }        /* Header Styles */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            box-shadow: var(--shadow-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: all var(--transition-fast);
+        }
+
+        .header.scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-md);
+            position: relative;
+        }
+
+        .header-section {
+            flex: 1;
+            display: flex;
+        }
+
+        .left-section {
+            justify-content: flex-start;
+        }
+
+        .center-section {
+            justify-content: center;
+            flex: 2;
+        }
+
+        .right-section {
+            justify-content: flex-end;
+        }
+
+        .welcome-title {
+            font-size: calc(var(--font-size-xl) * 1.3);
+            color: var(--primary-blue);
+            margin: 0;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            transition: all var(--transition-normal);
+            position: relative;
+        }
+
+        .welcome-title:hover {
+            color: var(--primary-purple);
+            transform: scale(1.03);
+            text-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .welcome-title:active {
+            transform: scale(0.98);
+        }
+
+        .database-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--primary-green);
+            border-radius: var(--radius-medium);
+            padding: var(--space-xs) var(--space-sm);
+            font-size: var(--font-size-sm);
+            color: var(--primary-green);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+        }
+
+        .database-status:hover {
+            background: rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-small);
+        }
+
+        .database-status span:first-child {
+            animation: pulse 2s infinite;
+        }        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .accessibility-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--primary-blue);
+            border-radius: var(--radius-medium);
+            padding: var(--space-sm);
+            cursor: pointer;
+            color: var(--primary-blue);
+            font-size: 18px;
+            width: 44px;
+            height: 44px;            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-light);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .accessibility-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .accessibility-button:hover::before {
+            left: 100%;
+        }
+
+        .accessibility-button:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .accessibility-button:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--space-xl) var(--space-md);
+        }
+
+        /* Activity Menu Styles */
+        .menu-container {
+            margin: var(--space-xl) 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 var(--space-md);
+        }
+
+        .menu-title {
+            text-align: center;
+            font-size: var(--font-size-xxl);
+            color: white;
+            margin-bottom: var(--space-xl);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-large);
+        }
+
+        .menu-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
+            border-radius: 2px;
+        }
+
+        .activities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-lg);
+            max-width: 1000px;
+            margin: 0 auto;
+        }        .activity-card {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+            border: none;
+            border-radius: var(--radius-large);
+            padding: var(--space-xl);
+            cursor: pointer;
+            box-shadow: var(--shadow-medium);
+            transition: all var(--transition-normal);
+            text-align: center;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-md);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .activity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 102, 204, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .activity-card:hover::before {
+            left: 100%;
+        }
+
+        .activity-card:hover {
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.95));
+            border: 2px solid var(--primary-blue);
+        }
+
+        .activity-card:active {
+            transform: translateY(-6px) scale(1.01);
+            transition: all 0.1s ease;
+        }
+
+        .activity-card.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .activity-card.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            margin: -15px 0 0 -15px;
+            border: 3px solid rgba(0, 102, 204, 0.3);
+            border-top: 3px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: loading-spin 1s linear infinite;
+        }        @keyframes loading-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .activity-icon {
+            font-size: 3.5rem;
+            line-height: 1;
+            filter: drop-shadow(3px 3px 8px rgba(0, 0, 0, 0.15));
+            margin-bottom: var(--space-sm);
+            transition: all var(--transition-normal);
+        }
+
+        .activity-card:hover .activity-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(4px 4px 12px rgba(0, 0, 0, 0.2));
+        }
+
+        .activity-title {
+            font-size: var(--font-size-lg);
+            color: var(--dark-blue);
+            margin: 0;
+            font-weight: 700;
+            margin-bottom: var(--space-xs);
+            transition: color var(--transition-normal);
+            text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        .activity-card:hover .activity-title {
+            color: var(--primary-blue);
+        }
+
+        .activity-description {
+            font-size: var(--font-size-md);
+            color: var(--dark-gray);
+            margin: 0;
+            line-height: 1.5;
+            text-align: center;
+            margin-bottom: var(--space-sm);
+            transition: color var(--transition-normal);
+            font-weight: 500;
+        }
+
+        .activity-badge {
+            background: linear-gradient(135deg, var(--primary-blue), #0066ccdd);
+            color: white;
+            padding: var(--space-xs) var(--space-md);
+            border-radius: var(--radius-large);
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all var(--transition-normal);
+            margin-top: auto;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .activity-badge.purple { background: linear-gradient(135deg, var(--primary-purple), #8b5cf6dd); }
+        .activity-badge.pink { background: linear-gradient(135deg, var(--primary-pink), #ec4899dd); }
+        .activity-badge.green { background: linear-gradient(135deg, var(--primary-green), #10b981dd); }
+        .activity-badge.orange { background: linear-gradient(135deg, var(--primary-orange), #f59e0bdd); }
+        .activity-badge.cyan { background: linear-gradient(135deg, var(--primary-cyan), #06b6d4dd); }
+
+        .activity-card:hover .activity-badge {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+
+        /* Donation Banner Styles */
+        .donation-banner {
+            background: linear-gradient(135deg, var(--primary-pink), var(--primary-orange));
+            border-radius: var(--radius-large);
+            padding: var(--space-lg);
+            margin: var(--space-xl) 0;
+            text-align: center;
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .banner-title {
+            font-size: var(--font-size-xl);
+            margin-bottom: var(--space-md);
+            font-weight: 600;
+        }
+
+        .banner-text {
+            font-size: var(--font-size-md);
+            margin-bottom: var(--space-lg);
+            line-height: 1.7;
+            opacity: 0.95;
+            text-align: justify;
+            text-justify: inter-word;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .qr-container {
+            background: white;
+            padding: var(--space-md);
+            border-radius: var(--radius-medium);
+            box-shadow: var(--shadow-light);
+        }
+
+        .qr-placeholder {
+            width: 150px;
+            height: 150px;
+            background: var(--light-gray);
+            border-radius: var(--radius-small);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-size-sm);
+            color: var(--medium-gray);
+            text-align: center;
+            border: 2px dashed var(--medium-gray);
+        }
+
+        .donation-info {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .donation-title {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--space-sm);
+            font-weight: 600;
+        }
+
+        .donation-text {
+            font-size: var(--font-size-md);
+            line-height: 1.5;
+            opacity: 0.9;
+            margin-bottom: var(--space-sm);
+        }
+
+        .pix-key {
+            background: rgba(255, 255, 255, 0.2);
+            padding: var(--space-sm);
+            border-radius: var(--radius-small);
+            font-family: monospace;
+            font-size: var(--font-size-sm);
+            margin-top: var(--space-sm);
+            word-break: break-all;
+        }
+
+        .heart-icon {
+            display: inline-block;
+            font-size: var(--font-size-lg);
+            margin: 0 var(--space-xs);
+            animation: heartBeat 2s infinite;
+        }
+
+        @keyframes heartBeat {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.2) rotate(5deg); }
+            75% { transform: scale(1.2) rotate(-5deg); }
+        }        /* Footer Styles - Compacto e Responsivo */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.99));
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(229, 231, 235, 0.8);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+            padding: var(--space-xs) var(--space-sm);
+            overflow-x: hidden;
+            transition: all var(--transition-fast);
+        }
+
+        .footer.hidden {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        .footer-toggle {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: var(--radius-medium) var(--radius-medium) 0 0;
+            padding: var(--space-xs) var(--space-md);
+            font-size: var(--font-size-xs);
+            cursor: pointer;
+            box-shadow: var(--shadow-small);
+            transition: all var(--transition-fast);
+            z-index: 1001;
+        }        .footer-toggle:hover {
+            background: var(--primary-purple);
+            transform: translateX(-50%) translateY(-2px);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;            padding: 0 var(--space-xs);
+        }
+
+        .navigation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: var(--space-xs);
+            width: 100%;
+            max-width: 1200px;
+            overflow-x: auto;
+            padding: var(--space-xs) 0;
+        }
+
+        .nav-button {
+            background: white;
+            color: var(--primary-blue);
+            border: 2px solid var(--primary-blue);
+            border-radius: var(--radius-medium);
+            padding: var(--space-xxs) var(--space-xs) var(--space-xxxs);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+            min-width: 60px;
+            min-height: 50px;
+            text-align: center;
+            box-shadow: var(--shadow-small);
+            transition: all 0.2s ease;
+        }
+
+        .nav-button.active {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
+            color: white;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .nav-button.special {
+            background: linear-gradient(135deg, #0078d4, #6b48ff);
+            color: white;
+            border: 3px solid #0078d4;
+            box-shadow: 0 0 12px rgba(144, 19, 254, 0.4);
+            animation: pulse-accessibility 3s infinite ease-in-out;
+            min-width: 65px;
+            min-height: 55px;
+            font-size: 13px;
+            border-width: 3px;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        @keyframes pulse-accessibility {
+            0% { 
+                box-shadow: 0 0 10px rgba(144, 19, 254, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 16px rgba(144, 19, 254, 0.6); 
+                transform: scale(1.03);
+            }
+            100% { 
+                box-shadow: 0 0 10px rgba(144, 19, 254, 0.4);
+                transform: scale(1);
+            }
+        }
+
+        .nav-button:hover {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-cyan));
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .nav-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .nav-label {
+            font-size: inherit;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .qr-section {
+                flex-direction: row;
+                justify-content: center;
+                gap: var(--space-xl);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                padding: var(--space-sm);
+                gap: var(--space-sm);
+            }
+
+            .welcome-title {
+                font-size: calc(var(--font-size-lg) * 1.3);
+            }
+
+            .activities-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: var(--space-md);
+                max-width: 600px;
+            }
+
+            .activity-card {
+                padding: var(--space-lg);
+                min-height: 200px;
+            }
+
+            .navigation-grid {
+                grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+                gap: var(--space-xxs);
+                padding: var(--space-xxs) 0;
+            }
+
+            .nav-button {
+                min-width: 50px;
+                min-height: 45px;
+                padding: var(--space-xxs) var(--space-xxs) var(--space-xxxs);
+                font-size: 10px;
+            }
+
+            .nav-icon {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                padding: var(--space-xs);
+                gap: var(--space-xs);
+            }
+
+            .welcome-title {
+                font-size: calc(var(--font-size-md) * 1.3);
+            }
+
+            .activities-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-md);
+                max-width: 400px;
+            }
+
+            .activity-card {
+                padding: var(--space-md);
+                min-height: 180px;
+            }
+
+            .navigation-grid {
+                grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+                gap: 2px;
+            }
+
+            .nav-button {
+                min-width: 45px;
+                min-height: 40px;
+                font-size: 9px;
+                gap: 1px;
+            }
+
+            .nav-icon {
+                font-size: 14px;
+            }
+
+            .accessibility-button {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+                padding: var(--space-xs);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="header-section left-section">
+                <div class="database-status">
+                    <span>🟢</span>
+                    <span>Online</span>
+                </div>
+            </div>
+
+            <div class="header-section center-section">
+                <h1 class="welcome-title" onclick="goHome()">
+                    🌟 Bem-vindos ao Portal Bettina! 🌟
+                </h1>
+            </div>
+
+            <div class="header-section right-section">
+                <button class="accessibility-button" onclick="toggleAccessibility()" title="Alternar Alto Contraste - Acessibilidade">
+                    👁️
+                </button>
+            </div>
+        </div>
+    </header>    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Donation Banner - Primeira seção -->
+        <section class="donation-banner">
+            <h2 class="banner-title">
+                Ajude a manter este projeto vivo 
+                <span class="heart-icon">💖</span>
+            </h2>
+            <p class="banner-text">
+                Este portal nasceu da história da minha filha Bettina e do desejo de apoiar outras crianças no seu desenvolvimento.
+                Oferecemos gratuitamente atividades terapêuticas e educativas para crianças com autismo, TDAH e outras necessidades cognitivas.
+                <br />
+            </p>
+
+            <div class="qr-section">
+                <div class="qr-container">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjZGRkIiBzdHJva2Utd2lkdGg9IjEiLz4KPHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0iIzMzMzMzMyIgeD0iMTAiIHk9IjEwIj4KPHN0eWxlPi5xci1tb2R1bGV7ZmlsbDojMDAwfTwvc3R5bGU+CjxyZWN0IGNsYXNzPSJxci1tb2R1bGUiIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHg9IjAiIHk9IjAiLz4KPHN2Zz4KPHN2Zz4K" 
+                         alt="QR Code PIX" class="qr-code">
+                    <div class="qr-label">PIX</div>
+                </div>
+                <div class="qr-info">
+                    <p><strong>Chave PIX:</strong></p>
+                    <code class="pix-key">betina.portal@gmail.com</code>
+                    <button class="copy-button" onclick="copyPix()">📋 Copiar</button>
+                </div>
+            </div>
+
+            <p class="banner-footer">
+                <small>
+                    💚 Sua doação ajuda a manter o projeto gratuito e acessível para todas as famílias
+                </small>
+            </p>
+        </section>
+
+        <!-- Activity Menu -->
+        <section class="menu-container">
+            <h2 class="menu-title">🎯 Atividades Mais Populares</h2>
+
+            <div class="activities-grid">
+                <button class="activity-card" onclick="selectActivity('letter-recognition')">
+                    <div class="activity-icon">🔤</div>
+                    <h3 class="activity-title">Reconhecimento de Letras</h3>
+                    <p class="activity-description">Aprenda o alfabeto de forma divertida e interativa</p>
+                    <span class="activity-badge">Letras</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('musical-sequence')">
+                    <div class="activity-icon">🎧</div>
+                    <h3 class="activity-title">Sequência de Sons</h3>
+                    <p class="activity-description">Repita sequências sonoras e desenvolva a memória auditiva</p>
+                    <span class="activity-badge purple">Sons</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('creative-painting')">
+                    <div class="activity-icon">🎨</div>
+                    <h3 class="activity-title">Pintura com Referência</h3>
+                    <p class="activity-description">Pinte seguindo números e cores para criar belas obras de arte</p>
+                    <span class="activity-badge pink">Arte</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('visual-patterns')">
+                    <div class="activity-icon">🔷</div>
+                    <h3 class="activity-title">Padrões Visuais</h3>
+                    <p class="activity-description">Complete sequências de formas e cores para treinar a lógica</p>
+                    <span class="activity-badge">Padrões</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('emotional-puzzle')">
+                    <div class="activity-icon">😊</div>
+                    <h3 class="activity-title">Quebra-Cabeça Emocional</h3>
+                    <p class="activity-description">Monte quebra-cabeças temáticos sobre emoções e sentimentos</p>
+                    <span class="activity-badge purple">Emoções</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('memory-game')">
+                    <div class="activity-icon">🃏</div>
+                    <h3 class="activity-title">Jogo da Memória</h3>
+                    <p class="activity-description">Encontre os pares iguais e exercite a memória de forma divertida</p>
+                    <span class="activity-badge green">Memória</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('image-association')">
+                    <div class="activity-icon">🧩</div>
+                    <h3 class="activity-title">Associação de Imagens</h3>
+                    <p class="activity-description">Combine imagens relacionadas e desenvolva conexões lógicas</p>
+                    <span class="activity-badge orange">Lógica</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('number-counting')">
+                    <div class="activity-icon">🔢</div>
+                    <h3 class="activity-title">Números e Contagem</h3>
+                    <p class="activity-description">Aprenda números de 1 a 10 com atividades interativas</p>
+                    <span class="activity-badge cyan">Números</span>
+                </button>
+            </div>
+
+            <h2 class="menu-title" style="margin-top: var(--space-xxl);">
+                ⚙️ Ferramentas e Configurações
+            </h2>
+
+            <div class="activities-grid">
+                <button class="activity-card" onclick="selectActivity('dashboard')">
+                    <div class="activity-icon">🤖</div>
+                    <h3 class="activity-title">Dashboard Inteligente</h3>
+                    <p class="activity-description">Monitor central com IA, métricas avançadas e análise terapêutica</p>
+                    <span class="activity-badge">IA</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('profiles')">
+                    <div class="activity-icon">👤</div>
+                    <h3 class="activity-title">Perfis de Usuário</h3>
+                    <p class="activity-description">Gerencie diferentes perfis para toda a família</p>
+                    <span class="activity-badge purple">Perfis</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('performance')">
+                    <div class="activity-icon">📊</div>
+                    <h3 class="activity-title">Dashboard de Desempenho</h3>
+                    <p class="activity-description">Visualize estatísticas detalhadas e gráficos de progresso</p>
+                    <span class="activity-badge green">Análise</span>
+                </button>
+
+                <button class="activity-card" onclick="selectActivity('backup')">
+                    <div class="activity-icon">💾</div>
+                    <h3 class="activity-title">Backup e Exportação</h3>
+                    <p class="activity-description">Salve seus dados ou transfira para outro dispositivo</p>
+                    <span class="activity-badge orange">Dados</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Donation Banner -->
+        <section class="donation-banner">
+            <h2 class="banner-title">
+                Ajude a manter este projeto vivo 
+                <span class="heart-icon">💖</span>
+            </h2>            <p class="banner-text">
+                Este portal nasceu da história da minha filha Bettina e do desejo de apoiar outras crianças no seu desenvolvimento.
+                Oferecemos gratuitamente atividades terapêuticas e educativas para crianças com autismo, TDAH e outras necessidades cognitivas.
+                <br />
+            </p>
+
+            <div class="qr-section">
+                <div class="qr-container">
+                    <div class="qr-placeholder">
+                        📱 QR Code PIX
+                        <br />
+                        <small>(Será gerado automaticamente)</small>
+                    </div>
+                </div>
+
+                <div class="donation-info">
+                    <h3 class="donation-title">Como doar:</h3>
+                    <p class="donation-text">
+                        • Escaneie o QR Code com seu banco
+                        <br />
+                        • Ou use a chave PIX abaixo
+                        <br />
+                        • Qualquer valor é bem-vindo! 🙏
+                    </p>
+                    
+                    <h3 class="donation-title">Chave PIX:</h3>
+                    <div class="pix-key" onclick="copyPix()" style="cursor: pointer;" title="Clique para copiar">
+                        portal.betina@exemplo.com
+                        <small style="display: block; margin-top: 5px; opacity: 0.8;">
+                            👆 Clique para copiar
+                        </small>
+                    </div>
+                    
+                    <p class="donation-text" style="margin-top: var(--space-md); font-size: var(--font-size-sm);">
+                        <strong>Transparência:</strong> 100% das doações são destinadas ao tratamento da Betina e manutenção do portal.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main><!-- Footer -->
+    <footer class="footer" id="footer">
+        <div class="footer-toggle" onclick="toggleFooter()">⬇️ Menu</div>
+        <div class="footer-content">
+            <div class="navigation-grid">
+                <button class="nav-button active" onclick="selectActivity('home')">
+                    <div class="nav-icon">🏠</div>
+                    <div class="nav-label">Início</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('musical-sequence')">
+                    <div class="nav-icon">🎵</div>
+                    <div class="nav-label">Música</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('letter-recognition')">
+                    <div class="nav-icon">🔤</div>
+                    <div class="nav-label">Letras</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('number-counting')">
+                    <div class="nav-icon">🔢</div>
+                    <div class="nav-label">Números</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('memory-game')">
+                    <div class="nav-icon">🧠</div>
+                    <div class="nav-label">Memória</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('visual-patterns')">
+                    <div class="nav-icon">🔷</div>
+                    <div class="nav-label">Padrões</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('emotional-puzzle')">
+                    <div class="nav-icon">😊</div>
+                    <div class="nav-label">Emoções</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('color-match')">
+                    <div class="nav-icon">🌈</div>
+                    <div class="nav-label">Cores</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('image-association')">
+                    <div class="nav-icon">🧩</div>
+                    <div class="nav-label">Imagens</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('creative-painting')">
+                    <div class="nav-icon">🎨</div>
+                    <div class="nav-label">Pintura</div>
+                </button>
+                <button class="nav-button special" onclick="showAccessibility()">
+                    <div class="nav-icon">♿</div>
+                    <div class="nav-label">Acessibilidade</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('admin-panel')">
+                    <div class="nav-icon">🔐</div>
+                    <div class="nav-label">Admin</div>
+                </button>
+                <button class="nav-button" onclick="selectActivity('about')">
+                    <div class="nav-icon">ℹ️</div>
+                    <div class="nav-label">Sobre</div>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>        // Funções de interação melhoradas
+        function selectActivity(activityId) {
+            console.log('Selecionando atividade:', activityId);
+            
+            // Adiciona loading state ao card clicado
+            const clickedCard = event.target.closest('.activity-card');
+            if (clickedCard) {
+                clickedCard.classList.add('loading');
+                
+                // Remove loading após 1.5s (simula carregamento)
+                setTimeout(() => {
+                    clickedCard.classList.remove('loading');
+                }, 1500);
+            }
+            
+            // Remove active de todos os botões do footer
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Adiciona active ao botão correspondente
+            const navButton = document.querySelector(`[onclick="selectActivity('${activityId}')"]`);
+            if (navButton) {
+                navButton.classList.add('active');
+            }
+            
+            // Feedback visual melhorado
+            showNotification(`Carregando: ${getActivityName(activityId)}`, 'info');
+        }
+
+        function getActivityName(activityId) {
+            const names = {
+                'home': 'Página Inicial',
+                'musical-sequence': 'Sequência Musical',
+                'letter-recognition': 'Reconhecimento de Letras',
+                'number-counting': 'Números e Contagem',
+                'memory-game': 'Jogo da Memória',
+                'visual-patterns': 'Padrões Visuais',
+                'emotional-puzzle': 'Quebra-Cabeça Emocional',
+                'creative-painting': 'Pintura Criativa',
+                'dashboard': 'Dashboard Inteligente',
+                'profiles': 'Perfis de Usuário',
+                'performance': 'Dashboard de Desempenho',
+                'backup': 'Backup e Exportação'
+            };
+            return names[activityId] || activityId;
+        }
+
+        function goHome() {
+            console.log('Voltando ao início');
+            showNotification('Voltando ao início', 'success');
+            selectActivity('home');
+        }
+
+        function toggleAccessibility() {
+            console.log('Alternando acessibilidade');
+            document.body.classList.toggle('high-contrast');
+            const isActive = document.body.classList.contains('high-contrast');
+            
+            showNotification(
+                isActive ? 'Alto contraste ativado' : 'Alto contraste desativado', 
+                'accessibility'
+            );
+            
+            // Salva preferência no localStorage
+            localStorage.setItem('highContrast', isActive);
+        }
+
+        function showAccessibility() {
+            console.log('Mostrando painel de acessibilidade');
+            showNotification('Abrindo configurações de acessibilidade...', 'info');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            // Estilos da notificação
+            Object.assign(notification.style, {
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '14px',
+                zIndex: '10000',
+                transform: 'translateX(100%)',
+                transition: 'transform 0.3s ease',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            });
+            
+            // Cores por tipo
+            const colors = {
+                'info': '#0066cc',
+                'success': '#10b981', 
+                'error': '#ef4444',
+                'accessibility': '#8b5cf6'
+            };
+            notification.style.background = colors[type] || colors.info;
+            
+            document.body.appendChild(notification);
+            
+            // Animação de entrada
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Remove após 3 segundos
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleFooter() {
+            const footer = document.getElementById('footer');
+            const toggle = footer.querySelector('.footer-toggle');
+            
+            footer.classList.toggle('hidden');
+            
+            if (footer.classList.contains('hidden')) {
+                toggle.innerHTML = '⬆️ Mostrar Menu';
+                toggle.style.bottom = '10px';
+                toggle.style.top = 'auto';
+            } else {
+                toggle.innerHTML = '⬇️ Ocultar Menu';
+                toggle.style.bottom = 'auto';
+                toggle.style.top = '-25px';
+            }
+        }
+
+        function copyPix() {
+            const pixKey = 'portal.betina@exemplo.com';
+            navigator.clipboard.writeText(pixKey).then(() => {
+                showNotification('Chave PIX copiada com sucesso! 📋✅', 'success');
+            }).catch(() => {
+                showNotification('Erro ao copiar chave PIX', 'error');
+            });
+        }
+
+        // Header scroll effect
+        function handleScroll() {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        }
+
+        // Auto-hide footer para dar mais espaço
+        function autoHideFooter() {
+            setTimeout(() => {
+                const footer = document.getElementById('footer');
+                if (!footer.classList.contains('hidden')) {
+                    toggleFooter();
+                    showNotification('Menu minimizado automaticamente. Use o botão para mostrar novamente.', 'info');
+                }
+            }, 5000); // 5 segundos
+        }        // Event Listeners e Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carrega preferência de acessibilidade
+            if (localStorage.getItem('highContrast') === 'true') {
+                document.body.classList.add('high-contrast');
+            }
+            
+            // Adiciona scroll listener para header
+            window.addEventListener('scroll', handleScroll);
+            
+            // Animações de entrada dos cards
+            const cards = document.querySelectorAll('.activity-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.style.animation = 'fadeInUp 0.6s ease forwards';
+            });
+            
+            // Auto-hide footer após delay
+            autoHideFooter();
+            
+            // Feedback de carregamento inicial
+            showNotification('Portal Betina carregado com sucesso! 🌟', 'success');
+        });
+
+        // Adicionar estilos de alto contraste
+        const style = document.createElement('style');
+        style.textContent = `
+            .high-contrast {
+                filter: contrast(1.4) brightness(1.1);
+            }
+            .high-contrast .activity-card {
+                border: 3px solid #000 !important;
+                background: white !important;
+            }
+            .high-contrast .nav-button {
+                border: 3px solid #000 !important;
+                background: white !important;
+                color: #000 !important;
+            }
+            .high-contrast .nav-button.active {
+                background: #000 !important;
+                color: white !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // CSS para animações
+        const animationStyle = document.createElement('style');
+        animationStyle.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(40px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+            
+            .activity-card {
+                opacity: 0;
+            }
+            
+            @keyframes slideInFromRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOutToRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(animationStyle);
+    </script>
+</body>
+</html>
